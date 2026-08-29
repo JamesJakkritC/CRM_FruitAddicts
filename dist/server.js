@@ -24,7 +24,7 @@ const MIME = {
 };
 // handler สำหรับ Vercel Serverless Function
 export default async function handler(req, res) {
-    const router = bootstrap();
+    const router = await bootstrap();
     const url = new URL(req.url ?? '/', `http://${req.headers.host || 'localhost'}`);
     
     // CORS headers
@@ -79,7 +79,7 @@ export function buildRouter() {
     registerAdminRoutes(router);
     return router;
 }
-export function bootstrap() {
+export async function bootstrap() {
     openDb();
     const { applied } = runMigrations();
     if (applied.length)
