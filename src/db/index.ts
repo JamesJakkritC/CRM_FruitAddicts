@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { config } from '../config.ts';
 
 /**
@@ -18,10 +18,16 @@ let handle: DatabaseSync | null = null;
 export function openDb(file = config.db.file): DatabaseSync {
   if (handle) return handle;
 
-  if (file !== ':memory:') {
-    mkdirSync(dirname(file), { recursive: true });
+  // หากรันอยู่บน Vercel ให้เปลี่ยน path ของไฟล์ DB ไปที่ /tmp เพื่อหลีกเลี่ยง Read-only File System Error
+  let targetFile = file;
+  if (process.env.VERCEL === '1' && file !== ':memory:') {
+    targetFile = '/tmp/data/sqlite.db';
   }
-  const db = new DatabaseSync(file);
+
+  if (targetFile !== ':memory:') {
+    mkdirSync(dirname(targetFile), { recursive: true });
+  }
+  const db = new DatabaseSync(targetFile);
 
   // --- Required durability / concurrency settings ---------------------------
   // WAL: concurrent readers do not block the single writer; better for a
