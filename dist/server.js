@@ -22,6 +22,32 @@ const MIME = {
     '.json': 'application/json; charset=utf-8',
     '.svg': 'image/svg+xml',
 };
+// handler สำหรับ Vercel Serverless Function
+export default async function handler(req, res) {
+    const router = bootstrap();
+    const url = new URL(req.url ?? '/', `http://${req.headers.host || 'localhost'}`);
+    
+    // CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'content-type,authorization,x-line-user-id,x-pos-key,idempotency-key');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
+    if ((req.method ?? 'GET') === 'GET') {
+        const handled = await serveStatic(url.pathname, res);
+        if (!handled) {
+            await router.dispatch(req, res).catch((err) => sendError(res, err));
+        }
+        return;
+    }
+
+    await router.dispatch(req, res).catch((err) => sendError(res, err));
+}
 async function serveStatic(pathname, res) {
     let rel = null;
     if (pathname === '/' || pathname === '/admin' || pathname === '/admin/')
