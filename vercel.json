@@ -5,7 +5,11 @@
       "src": "dist/server.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["dist/db/migrations/**", "db/migrations/**"]
+        "includeFiles": [
+          "dist/db/migrations/**",
+          "src/db/migrations/**",
+          "db/migrations/**"
+        ]
       }
     }
   ],
