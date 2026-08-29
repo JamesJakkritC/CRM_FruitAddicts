@@ -49,4 +49,56 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
     console.log(`Migrations applied: ${applied.length ? applied.join(', ') : '(none)'}`);
     console.log(`Already up-to-date: ${skipped.length}`);
 }
+
+function getMigrationsDir() {
+    const paths = [
+        join(__dirname, 'migrations'),
+        join(process.cwd(), 'dist', 'db', 'migrations'),
+        join(process.cwd(), 'src', 'db', 'migrations'),
+        join(process.cwd(), 'db', 'migrations')
+    ];
+    for (const p of paths) {
+        if (existsSync(p)) return p;
+    }
+    return join(__dirname, 'migrations');
+}
+
+const MIGRATIONS_DIR = getMigrationsDir();
+
+export function runMigrations() {
+    const db = getDb();
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      name       TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    );
+  `);
+
+    const files = existsSync(MIGRATIONS_DIR)
+        ? readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort()
+        : [];
+
+    const done = new Set(db.prepare('SELECT name FROM schema_migrations').all().map((r) => r.name));
+    const applied = [];
+    const skipped = [];
+    for (const file of files) {
+        if (done.has(file)) {
+            skipped.push(file);
+            continue;
+        }
+        const sql = readFileSync(join(MIGRATIONS_DIR, file), 'utf8');
+        db.exec('BEGIN IMMEDIATE;');
+        try {
+            db.exec(sql);
+            db.prepare('INSERT INTO schema_migrations(name, applied_at) VALUES(?, ?)').run(file, now());
+            db.exec('COMMIT;');
+            applied.push(file);
+        }
+        catch (err) {
+            db.exec('ROLLBACK;');
+            throw new Error(`Migration ${file} failed: ${err.message}`);
+        }
+    }
+    return { applied, skipped };
+}
 //# sourceMappingURL=migrate.js.map
