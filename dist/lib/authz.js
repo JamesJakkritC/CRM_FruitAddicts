@@ -1,64 +1,49 @@
-import { clientIp } from "./http.js";
-import { unauthorized, forbidden } from "./errors.js";
 import { principalFromToken } from "../domain/users.js";
-import { can, hasPermission, allowedBranches } from "../domain/rbac.js";
-import { audit } from "../domain/audit.js";
-/** Resolve the bearer token to a Principal; 401 if missing/invalid. */
-export const requireAuth = (ctx) => {
+import { ROLE_GRANTS } from "../domain/rbac.js";
+import { unauthorized, forbidden } from "./errors.js";
+
+export async function getPrincipal(ctx) {
+    if (ctx.state?.principal) {
+        return ctx.state.principal;
+    }
     const auth = String(ctx.headers['authorization'] ?? '');
-    const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
-    if (!token)
-        throw unauthorized('Missing bearer token');
-    const principal = principalFromToken(token);
-    if (!principal)
-        throw unauthorized('Invalid or expired session');
-    ctx.state.principal = principal;
-};
-export function getPrincipal(ctx) {
-    const p = ctx.state.principal;
-    if (!p)
-        throw unauthorized('Not authenticated');
-    return p;
+    if (!auth.startsWith('Bearer ')) {
+        return null;
+    }
+    const token = auth.slice(7).trim();
+    if (!token) {
+        return null;
+    }
+    const principal = await principalFromToken(token);
+    if (principal) {
+        ctx.state = ctx.state || {};
+        ctx.state.principal = principal;
+    }
+    return principal;
 }
-/**
- * Middleware factory: require a (branch-agnostic) permission. For branch-scoped
- * permissions this only checks the principal holds the permission at all — the
- * per-branch check must additionally be done in the handler via authorizeBranch,
- * because the target branch is only known once the body/params are read.
- */
-export function requirePerm(perm) {
-    return (ctx) => {
-        const principal = getPrincipal(ctx);
-        if (!hasPermission(principal, perm)) {
-            audit({
-                actor: principal,
-                action: 'authz.denied',
-                outcome: 'denied',
-                metadata: { perm },
-                ip: clientIp(ctx),
-            });
-            throw forbidden(`Missing permission: ${perm}`);
-        }
-    };
-}
-/** Enforce a branch-scoped permission for a specific branch (call in handler). */
-export function authorizeBranch(ctx, perm, branchId) {
-    const principal = getPrincipal(ctx);
-    if (!can(principal, perm, branchId)) {
-        audit({
-            actor: principal,
-            action: 'authz.denied',
-            outcome: 'denied',
-            branchId: branchId ?? null,
-            metadata: { perm },
-            ip: clientIp(ctx),
-        });
-        throw forbidden(`Not allowed for branch '${branchId ?? '(none)'}' (${perm})`);
+
+export async function requireAuth(ctx) {
+    const p = await getPrincipal(ctx);
+    if (!p) {
+        throw unauthorized('Authentication required');
     }
 }
-/** Branch filter for list endpoints: null = all branches, else the allowed set. */
-export function branchFilter(ctx, perm) {
-    const scope = allowedBranches(getPrincipal(ctx), perm);
-    return scope.all ? null : scope.ids;
+
+export function requirePerm(perm) {
+    return async function (ctx) {
+        const p = await getPrincipal(ctx);
+        if (!p) {
+            throw unauthorized('Authentication required');
+        }
+        const roles = Array.isArray(p.roles) ? p.roles : [];
+        const hasPermission = roles.some((r) => {
+            const grants = ROLE_GRANTS[r];
+            return grants && Array.isArray(grants.perms) && grants.perms.includes(perm);
+        });
+
+        if (!hasPermission) {
+            throw forbidden(`Missing required permission: ${perm}`);
+        }
+    };
 }
 //# sourceMappingURL=authz.js.map
