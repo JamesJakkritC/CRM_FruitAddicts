@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { getDb, openDb, now } from "./index.js";
@@ -12,9 +12,12 @@ export function runMigrations() {
       applied_at TEXT NOT NULL
     );
   `);
-    const files = readdirSync(MIGRATIONS_DIR)
-        .filter((f) => f.endsWith('.sql'))
-        .sort();
+
+    // เช็คว่ามีโฟลเดอร์ MIGRATIONS_DIR อยู่หรือไม่ ถ้าไม่มีให้คืนค่าเป็น Array ว่าง []
+    const files = existsSync(MIGRATIONS_DIR)
+        ? readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort()
+        : [];
+
     const done = new Set(db.prepare('SELECT name FROM schema_migrations').all().map((r) => r.name));
     const applied = [];
     const skipped = [];
