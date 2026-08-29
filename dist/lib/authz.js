@@ -46,4 +46,40 @@ export function requirePerm(perm) {
         }
     };
 }
+
+/** ตรวจสอบว่า Principal มีสิทธิ์เข้าถึงสาขาที่ระบุหรือไม่ */
+export function authorizeBranch(principal, branchId) {
+    if (!principal) return false;
+    const roles = Array.isArray(principal.roles) ? principal.roles : [];
+    
+    // หากมีบทบาทที่มีสิทธิ์เข้าถึงทุกสาขา (allBranches = true)
+    const hasAllBranches = roles.some((r) => ROLE_GRANTS[r]?.allBranches);
+    if (hasAllBranches) return true;
+
+    // ตรวจสอบจากรายชื่อ branchIds ที่ได้รับสิทธิ์เฉพาะ
+    const branchIds = Array.isArray(principal.branchIds) ? principal.branchIds : [];
+    return branchIds.includes(branchId);
+}
+
+/** คืนค่าเงื่อนไขการกรองสาขา (Branch Filter Query) สำหรับ SQL */
+export function branchFilter(principal, column = 'branch_id') {
+    if (!principal) return { sql: '1=0', args: [] };
+    const roles = Array.isArray(principal.roles) ? principal.roles : [];
+    
+    const hasAllBranches = roles.some((r) => ROLE_GRANTS[r]?.allBranches);
+    if (hasAllBranches) {
+        return { sql: '1=1', args: [] };
+    }
+
+    const branchIds = Array.isArray(principal.branchIds) ? principal.branchIds : [];
+    if (branchIds.length === 0) {
+        return { sql: '1=0', args: [] };
+    }
+
+    const placeholders = branchIds.map(() => '?').join(',');
+    return {
+        sql: `${column} IN (${placeholders})`,
+        args: branchIds
+    };
+}
 //# sourceMappingURL=authz.js.map
