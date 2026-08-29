@@ -48,6 +48,61 @@ export function closeDb() {
     }
 }
 
+// เพิ่มฟังก์ชัน tx (Transaction Helper)
+let savepointDepth = 0;
+
+export function tx(fn) {
+    const db = getDb();
+
+    // กรณีเป็น Turso Client (Async transaction)
+    if (db && typeof db.transaction === 'function') {
+        return db.transaction('write').then(async (transaction) => {
+            try {
+                const result = await fn(transaction);
+                await transaction.commit();
+                return result;
+            } catch (err) {
+                await transaction.rollback();
+                throw err;
+            }
+        });
+    }
+
+    // กรณีเป็น Synchronous node:sqlite
+    if (savepointDepth === 0) {
+        db.exec('BEGIN IMMEDIATE;');
+        savepointDepth = 1;
+        try {
+            const result = fn(db);
+            db.exec('COMMIT;');
+            savepointDepth = 0;
+            return result;
+        } catch (err) {
+            try {
+                db.exec('ROLLBACK;');
+            } finally {
+                savepointDepth = 0;
+            }
+            throw err;
+        }
+    } else {
+        const name = `sp_${savepointDepth}`;
+        db.exec(`SAVEPOINT ${name};`);
+        savepointDepth += 1;
+        try {
+            const result = fn(db);
+            db.exec(`RELEASE ${name};`);
+            savepointDepth -= 1;
+            return result;
+        } catch (err) {
+            db.exec(`ROLLBACK TO ${name};`);
+            db.exec(`RELEASE ${name};`);
+            savepointDepth -= 1;
+            throw err;
+        }
+    }
+}
+
 export function now() {
     return new Date().toISOString();
 }
