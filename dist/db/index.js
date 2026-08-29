@@ -13,13 +13,18 @@ import { config } from "../config.js";
  */
 let handle = null;
 export function openDb(file = config.db.file) {
-    if (handle)
-        return handle;
-    if (file !== ':memory:') {
-        mkdirSync(dirname(file), { recursive: true });
+if (handle) return handle;
+
+    let targetFile = file;
+    if (process.env.VERCEL === '1' && file !== ':memory:') {
+        targetFile = '/tmp/data/sqlite.db';
     }
-    const db = new DatabaseSync(file);
-    // --- Required durability / concurrency settings ---------------------------
+
+    if (targetFile !== ':memory:') {
+        mkdirSync(dirname(targetFile), { recursive: true });
+    }
+    const db = new DatabaseSync(targetFile);
+    // --- Required durability/concurrency settings ---------------------------
     // WAL: concurrent readers do not block the single writer; better for a
     // multi-branch backend hitting one instance.
     db.exec('PRAGMA journal_mode = WAL;');
