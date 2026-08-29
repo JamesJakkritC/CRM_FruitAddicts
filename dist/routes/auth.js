@@ -6,17 +6,18 @@ import { audit, listAudit } from "../domain/audit.js";
 import { ROLE_GRANTS, ROLE_DESCRIPTIONS, ROLES } from "../domain/rbac.js";
 import { body, requireString, optionalString } from "./helpers.js";
 import { AppError } from "../lib/errors.js";
+
 export function registerAuthRoutes(router) {
-    router.post('/api/auth/login', (ctx) => {
+    router.post('/api/auth/login', async (ctx) => {
         const b = body(ctx);
         const username = requireString(b, 'username');
         try {
-            const { token, principal } = login(username, requireString(b, 'password'));
-            audit({ actor: principal, action: 'login', outcome: 'success', ip: clientIp(ctx) });
+            const { token, principal } = await login(username, requireString(b, 'password'));
+            await audit({ actor: principal, action: 'login', outcome: 'success', ip: clientIp(ctx) });
             return { token, principal };
         }
         catch (err) {
-            audit({
+            await audit({
                 action: 'login',
                 outcome: 'denied',
                 metadata: { username },
@@ -25,55 +26,72 @@ export function registerAuthRoutes(router) {
             throw err instanceof AppError ? err : new AppError(401, 'unauthorized', 'login failed');
         }
     });
-    router.post('/api/auth/logout', (ctx) => {
+
+    router.post('/api/auth/logout', async (ctx) => {
         const auth = String(ctx.headers['authorization'] ?? '');
         if (auth.startsWith('Bearer '))
-            logout(auth.slice(7).trim());
+            await logout(auth.slice(7).trim());
         return { ok: true };
     }, [requireAuth]);
-    router.get('/api/auth/me', (ctx) => {
-        const p = getPrincipal(ctx);
+
+    router.get('/api/auth/me', async (ctx) => {
+        const p = await getPrincipal(ctx);
+        if (!p || !Array.isArray(p.roles)) {
+            throw new AppError(401, 'unauthorized', 'invalid principal or session expired');
+        }
+
         const perms = new Set();
-        for (const r of p.roles)
-            for (const perm of ROLE_GRANTS[r].perms)
-                perms.add(perm);
+        for (const r of p.roles) {
+            if (ROLE_GRANTS[r] && Array.isArray(ROLE_GRANTS[r].perms)) {
+                for (const perm of ROLE_GRANTS[r].perms) {
+                    perms.add(perm);
+                }
+            }
+        }
         return { principal: p, permissions: [...perms] };
     }, [requireAuth]);
+
     // Role matrix (for UI + docs)
     router.get('/api/auth/roles', () => ({
         roles: ROLES.map((r) => ({
             name: r,
             description: ROLE_DESCRIPTIONS[r],
-            allBranches: ROLE_GRANTS[r].allBranches,
-            permissions: [...ROLE_GRANTS[r].perms],
+            allBranches: ROLE_GRANTS[r]?.allBranches ?? false,
+            permissions: [...(ROLE_GRANTS[r]?.perms ?? [])],
         })),
     }), [requireAuth]);
+
     // User management (super_admin only via users.manage)
-    router.get('/api/admin/users', () => ({ users: listUsers() }), [requireAuth, requirePerm('users.manage')]);
-    router.post('/api/admin/users', (ctx) => {
+    router.get('/api/admin/users', async () => ({ users: await listUsers() }), [requireAuth, requirePerm('users.manage')]);
+
+    router.post('/api/admin/users', async (ctx) => {
         const b = body(ctx);
         const roles = b['roles'] ?? [];
-        const user = createUser({
+        const user = await createUser({
             username: requireString(b, 'username'),
             password: requireString(b, 'password'),
             fullName: optionalString(b, 'fullName'),
             roles: roles,
             branchIds: b['branchIds'] ?? [],
         });
-        audit({
-            actor: getPrincipal(ctx),
+        
+        const actor = await getPrincipal(ctx);
+        await audit({
+            actor: actor,
             action: 'user.create',
             targetType: 'user',
             targetId: user.id,
             metadata: { username: b['username'], roles },
             ip: clientIp(ctx),
         });
+        
         ctx.status = 201;
         return { user };
     }, [requireAuth, requirePerm('users.manage')]);
+
     // Audit log viewer
-    router.get('/api/admin/audit', (ctx) => ({
-        entries: listAudit({
+    router.get('/api/admin/audit', async (ctx) => ({
+        entries: await listAudit({
             action: ctx.query.get('action') ?? undefined,
             branchId: ctx.query.get('branchId') ?? undefined,
             actorUserId: ctx.query.get('actorUserId') ? Number(ctx.query.get('actorUserId')) : undefined,
