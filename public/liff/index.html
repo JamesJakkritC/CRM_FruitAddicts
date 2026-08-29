@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fruit Addicts — สมาชิก</title>
+<style>
+  :root{--bg:#f2faf5;--card:#fff;--ink:#182a20;--muted:#6f8479;--brand:#0f9d58;--brand2:#0b7a41;--line:#dcefe3}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",sans-serif;background:var(--bg);color:var(--ink)}
+  .app{max-width:460px;margin:0 auto;min-height:100vh;padding:16px}
+  .hero{background:linear-gradient(135deg,var(--brand),#48c07e);color:#fff;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(15,157,88,.28)}
+  .hero .name{font-size:15px;opacity:.9}
+  .hero .balance{font-size:46px;font-weight:800;line-height:1.1;margin:6px 0}
+  .hero .sub{font-size:13px;opacity:.9}
+  .chip{display:inline-block;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:999px;font-size:12px;margin-top:8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+  .card h2{font-size:14px;margin:0 0 10px}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{display:flex;justify-content:space-between;font-size:14px;border-bottom:1px dashed var(--line);padding-bottom:8px}
+  .item:last-child{border-bottom:none}
+  .muted{color:var(--muted)}
+  .pos{color:var(--brand2);font-weight:700}
+  .neg{color:#c02626;font-weight:700}
+  input,button{font:inherit}
+  input{padding:10px;border:1px solid var(--line);border-radius:10px;width:100%}
+  button{cursor:pointer;border:none;border-radius:10px;padding:11px 14px;background:var(--brand);color:#fff;font-weight:700;width:100%}
+  button.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+  .row{display:flex;gap:8px}
+  .devbar{background:#fff;border:1px dashed var(--brand);border-radius:12px;padding:12px;margin-bottom:14px;font-size:13px}
+  .err{color:#c02626;font-size:13px}
+  .ok{color:var(--brand2);font-size:13px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .coupon{background:#eefaf2;border:1px solid #c7ead5;border-radius:12px;padding:10px 12px;font-size:13px}
+  .coupon b{color:var(--brand)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div id="storeHeader" style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <img id="storeLogo" src="" alt="" style="height:38px;border-radius:8px;display:none"/>
+    <b id="storeName" style="font-size:17px;color:var(--brand)"></b>
+  </div>
+  <div id="devbar" class="devbar">
+    <b>โหมดทดสอบ (dev):</b> ใส่ LINE User ID แล้วกดเข้าสู่ระบบ<br/>
+    <div class="row" style="margin-top:8px">
+      <input id="uid" placeholder="เช่น Udemo0001" />
+      <button style="width:auto" onclick="login()">เข้า</button>
+    </div>
+  </div>
+
+  <div id="content" style="display:none">
+    <div class="hero">
+      <div class="name" id="h_name">สมาชิก</div>
+      <div class="balance"><span id="h_balance">0</span> <span style="font-size:18px">แต้ม</span></div>
+      <div class="sub">มูลค่าโดยประมาณ <span id="h_value">฿0</span></div>
+      <div class="chip" id="h_tier">regular</div>
+    </div>
+
+    <div class="card" id="tierCard">
+      <h2>ระดับสมาชิก</h2>
+      <div id="tier_body"></div>
+    </div>
+
+    <div class="card">
+      <h2>แลกแต้ม</h2>
+      <div class="row">
+        <input id="redeem_pts" type="number" placeholder="จำนวนแต้ม" />
+        <button style="width:auto" onclick="redeem()">แลก</button>
+      </div>
+      <div id="redeem_out" class="muted" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card" id="receiptCard">
+      <h2>สะสมแต้มจากใบเสร็จ</h2>
+      <div class="muted" style="font-size:13px;margin-bottom:10px">ถ่ายรูปใบเสร็จ แล้วกรอกข้อมูลบนใบเสร็จ (สาขา/วันที่/รหัสบิล/ยอด) — ยอดน้อยได้แต้มทันที ยอดสูงพนักงานตรวจก่อน</div>
+      <div class="list">
+        <input id="rc_file" type="file" accept="image/*" capture="environment" onchange="previewReceipt()"/>
+        <img id="rc_preview" alt="" style="max-width:100%;border-radius:10px;display:none;border:1px solid var(--line)"/>
+        <select id="rc_branch"><option value="">— เลือกสาขา —</option></select>
+        <input id="rc_date" type="date"/>
+        <input id="rc_code" placeholder="รหัสบิล (ID เช่น OH6JK)"/>
+        <input id="rc_amount" type="number" inputmode="decimal" placeholder="ยอดเงิน (บาท)"/>
+        <button onclick="submitReceipt()">ส่งใบเสร็จ</button>
+        <div id="rc_out" class="muted"></div>
+      </div>
+      <div id="rc_list" class="list" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card" id="couponsCard">
+      <h2>คูปองของฉัน</h2>
+      <div id="coupons" class="list"></div>
+    </div>
+
+    <div id="referralCard" class="card" style="display:none">
+      <h2>ชวนเพื่อน รับแต้ม</h2>
+      <div class="coupon">โค้ดของคุณ: <b id="ref_code">-</b></div>
+      <div class="muted" style="font-size:12px;margin:8px 0">ส่งลิงก์นี้ให้เพื่อน เมื่อเพื่อนสมัครและซื้อครั้งแรกครบเงื่อนไข คุณจะได้รับแต้ม</div>
+      <input id="ref_link" readonly style="font-size:12px"/>
+      <button class="ghost" style="margin-top:8px" onclick="copyRef()">คัดลอกลิงก์</button>
+      <div id="ref_stats" class="muted" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card" id="pointsCard">
+      <h2>ประวัติแต้ม</h2>
+      <div id="ledger" class="list"></div>
+    </div>
+
+    <div class="card" id="txnsCard">
+      <h2>ประวัติการซื้อ</h2>
+      <div id="txns" class="list"></div>
+    </div>
+
+    <div id="itemsCard" class="card" style="display:none">
+      <h2>สินค้าที่เคยซื้อ</h2>
+      <div id="items" class="list"></div>
+    </div>
+
+    <div id="pdpaCard" class="card" style="display:none">
+      <h2>ความเป็นส่วนตัว (PDPA)</h2>
+      <label style="display:flex;align-items:center;gap:8px;margin:6px 0"><input type="checkbox" id="c_service"/> <span>ยินยอมให้ใช้ข้อมูลเพื่อบริการสมาชิก/สะสมแต้ม</span></label>
+      <label style="display:flex;align-items:center;gap:8px;margin:6px 0"><input type="checkbox" id="c_marketing"/> <span>ยินยอมรับข่าวสาร/โปรโมชัน</span></label>
+      <button style="margin-top:8px" onclick="saveMyConsent()">บันทึก</button>
+      <span id="c_out" class="muted" style="margin-left:8px"></span>
+      <div style="border-top:1px solid #eee;margin-top:12px;padding-top:10px">
+        <div class="muted" style="font-size:12px;margin-bottom:6px">ดาวน์โหลดข้อมูลทั้งหมดที่ร้านเก็บเกี่ยวกับคุณ</div>
+        <button class="ghost" onclick="exportMyData()">⬇ ขอข้อมูลของฉัน (JSON)</button>
+      </div>
+    </div>
+
+    <div id="register" style="display:none" class="card">
+      <h2>สมัครสมาชิก</h2>
+      <div class="list" id="r_fields"></div>
+      <button style="margin-top:10px" onclick="register()">สมัครเลย</button>
+    </div>
+  </div>
+</div>
+<script>
+const $ = (id)=>document.getElementById(id);
+let UID = '';
+let CFG = null;
+const thb = (s)=>'฿'+(s/100).toLocaleString('th-TH',{minimumFractionDigits:2});
+
+async function api(path, opts={}){
+  const res = await fetch('/api'+path,{...opts,headers:{'content-type':'application/json','x-line-user-id':UID,...(opts.headers||{})}});
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){ const err=new Error(data?.error?.message||res.status); err.status=res.status; throw err; }
+  return data;
+}
+
+async function login(){
+  UID = $('uid').value.trim(); if(!UID) return;
+  try{
+    const me = await api('/me');
+    $('devbar').style.display='none'; $('content').style.display='block'; $('register').style.display='none';
+    render(me);
+    await loadExtras();
+    scrollToSection();
+  }catch(e){
+    if(e.status===404){ // not registered yet
+      $('content').style.display='block'; $('register').style.display='block'; renderRegister();
+    } else { $('devbar').innerHTML += '<div class="err">'+e.message+'</div>'; }
+  }
+}
+
+// Rich-menu deep link: ?p=<section> scrolls the matching card into view.
+function scrollToSection(){
+  const p=new URLSearchParams(location.search).get('p'); if(!p||p==='home')return;
+  const map={points:'pointsCard',purchases:'txnsCard',coupons:'couponsCard',receipt:'receiptCard',referral:'referralCard',profile:'pdpaCard'};
+  const el=$(map[p]); if(el&&el.style.display!=='none') el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function register(){
+  try{
+    const payload = collectRegister();
+    await api('/me/register',{method:'POST',body:JSON.stringify(payload)});
+    login();
+  }catch(e){ alert(e.message); }
+}
+
+function render(me){
+  $('h_name').textContent = me.member.display_name || me.member.member_code;
+  $('h_balance').textContent = me.stats.pointBalance;
+  $('h_tier').textContent = me.member.tier + ' · ' + me.segment;
+  const tier = me.member.tier;
+  $('tier_body').innerHTML = (tier==='basic'||!tier)
+    ? 'ระดับปัจจุบัน: <b>Basic</b> (ฟรี)<br><span class="muted" style="font-size:13px">อัปเกรดเป็นสมาชิกแบบพิเศษได้ที่หน้าร้าน รับส่วนลดทุกบิล + แต้มโบนัส</span>'
+    : 'ระดับปัจจุบัน: <b>'+tier+'</b> ⭐<br><span class="muted" style="font-size:13px">รับส่วนลดสมาชิกอัตโนมัติทุกบิล</span>';
+  render360Extras(me);
+}
+function render360Extras(me){
+  $('txns').innerHTML = (me.recentTransactions||[]).map(t=>`<div class="item"><span>${new Date(t.created_at).toLocaleDateString('th-TH')} · ${t.branch_id}</span><span>${thb(t.net_amount)} <span class="pos">+${t.points_earned}</span></span></div>`).join('') || '<span class="muted">ยังไม่มีรายการ</span>';
+}
+
+async function loadExtras(){
+  const p = await api('/me/points');
+  $('h_value').textContent = thb(p.balance*100); // 1 pt = 1 THB (redeem value seeded)
+  $('ledger').innerHTML = p.ledger.map(l=>`<div class="item"><span>${l.type} <span class="muted">${new Date(l.created_at).toLocaleDateString('th-TH')}</span></span><span class="${l.delta>=0?'pos':'neg'}">${l.delta>=0?'+':''}${l.delta}</span></div>`).join('') || '<span class="muted">—</span>';
+  const c = await api('/me/coupons');
+  const issued = (c.issued||[]).map(x=>`<div class="coupon"><b>${x.code}</b> — ${x.name} <span class="pos" style="font-size:11px">พิเศษสำหรับคุณ</span></div>`).join('');
+  const general = c.coupons.map(x=>`<div class="coupon"><b>${x.code}</b> — ${x.name}</div>`).join('');
+  $('coupons').innerHTML = (issued+general) || '<span class="muted">ยังไม่มีคูปอง</span>';
+  try{
+    const r = await api('/me/referral');
+    if(r.enabled && r.summary.code){
+      $('referralCard').style.display='block';
+      $('ref_code').textContent = r.summary.code;
+      $('ref_link').value = r.summary.deepLink || ('?ref='+r.summary.code);
+      $('ref_stats').textContent = `ชวนแล้ว ${r.summary.totalReferred} คน • สำเร็จ ${r.summary.rewarded} คน`;
+    } else { $('referralCard').style.display='none'; }
+  }catch(e){ $('referralCard').style.display='none'; }
+  if(CFG && CFG.branches){ $('rc_branch').innerHTML='<option value="">— เลือกสาขา —</option>'+CFG.branches.map(b=>`<option value="${b.id}">${b.name}</option>`).join(''); }
+  if(!$('rc_date').value){ $('rc_date').value=new Date().toISOString().slice(0,10); }
+  loadReceipts();
+  try{ const it=(await api('/me/items')).items; if(it.length){ $('itemsCard').style.display='block'; $('items').innerHTML=it.slice(0,15).map(x=>`<div class="item"><span>${x.name}</span><span class="muted">${new Date(x.bill_date).toLocaleDateString('th-TH')}</span></div>`).join(''); } }catch(e){}
+  try{ const cs=await api('/me/consent'); $('pdpaCard').style.display='block'; $('c_service').checked=!!cs.service; $('c_marketing').checked=!!cs.marketing; }catch(e){}
+}
+function copyRef(){ const i=$('ref_link'); i.select(); try{navigator.clipboard.writeText(i.value);}catch(e){} }
+async function saveMyConsent(){ try{ await api('/me/consent',{method:'POST',body:JSON.stringify({service:$('c_service').checked,marketing:$('c_marketing').checked})}); $('c_out').innerHTML='<span class="pos">บันทึกแล้ว</span>'; }catch(e){ $('c_out').innerHTML='<span class="err">'+e.message+'</span>'; } }
+async function exportMyData(){ try{ const d=await api('/me/export'); const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='my-data.json'; a.click(); URL.revokeObjectURL(a.href); }catch(e){ alert(e.message); } }
+
+let RC_DATAURL=null;
+function resizeImage(file){ return new Promise((res,rej)=>{ const img=new Image(); const rd=new FileReader();
+  rd.onload=()=>{ img.onload=()=>{ const max=1200; let w=img.width,h=img.height; if(w>max||h>max){ const s=max/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s);} const c=document.createElement('canvas'); c.width=w;c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); res(c.toDataURL('image/jpeg',0.82)); }; img.onerror=rej; img.src=rd.result; }; rd.onerror=rej; rd.readAsDataURL(file); }); }
+function previewReceipt(){ const f=$('rc_file').files[0]; if(!f)return; resizeImage(f).then(url=>{ RC_DATAURL=url; const p=$('rc_preview'); p.src=url; p.style.display='block'; }).catch(()=>{ $('rc_out').innerHTML='<span class="err">อ่านรูปไม่ได้</span>'; }); }
+async function submitReceipt(){
+  if(!RC_DATAURL){ $('rc_out').innerHTML='<span class="err">กรุณาถ่าย/เลือกรูปใบเสร็จ</span>'; return; }
+  const branchId=$('rc_branch').value, date=$('rc_date').value, code=$('rc_code').value.trim(), amt=parseFloat($('rc_amount').value);
+  if(!branchId){ $('rc_out').innerHTML='<span class="err">เลือกสาขา</span>'; return; }
+  if(!date){ $('rc_out').innerHTML='<span class="err">ใส่วันที่บนใบเสร็จ</span>'; return; }
+  if(!code){ $('rc_out').innerHTML='<span class="err">ใส่รหัสบิล (ID บนใบเสร็จ)</span>'; return; }
+  if(!amt||amt<=0){ $('rc_out').innerHTML='<span class="err">ใส่ยอดเงินบนใบเสร็จ</span>'; return; }
+  try{ const r=await api('/me/receipts',{method:'POST',body:JSON.stringify({imageDataUrl:RC_DATAURL,branchId,receiptDate:date,receiptCode:code,claimedTotal:amt})});
+    $('rc_out').innerHTML = r.autoApproved ? `<span class="ok">🎉 ได้รับ ${r.pointsAwarded} แต้มทันที!</span>` : '<span class="ok">ส่งแล้ว! รอพนักงานตรวจ (ยอดสูง)</span>';
+    RC_DATAURL=null; $('rc_file').value=''; $('rc_code').value=''; $('rc_amount').value=''; $('rc_preview').style.display='none';
+    loadReceipts(); if(r.autoApproved){ const me=await api('/me'); render(me); loadExtras(); }
+  }catch(e){ $('rc_out').innerHTML='<span class="err">'+e.message+'</span>'; }
+}
+async function loadReceipts(){ try{ const cs=(await api('/me/receipts')).claims;
+  $('rc_list').innerHTML = cs.length ? cs.map(c=>{ const st=c.status==='approved'?`<span class="pos">อนุมัติ +${c.points_awarded} แต้ม</span>`:(c.status==='rejected'?`<span class="neg">ไม่ผ่าน</span>`:`<span class="muted">รอตรวจ</span>`); return `<div class="item"><span>${c.receipt_code||'ใบเสร็จ'} · ${new Date(c.created_at).toLocaleDateString('th-TH')}</span><span>${st}</span></div>`; }).join('') : '<span class="muted">ยังไม่มีการส่งใบเสร็จ</span>';
+}catch(e){} }
+
+async function redeem(){
+  const pts = parseInt($('redeem_pts').value,10);
+  if(!pts||pts<=0) return;
+  try{
+    const r = await api('/me/redeem',{method:'POST',headers:{'idempotency-key':'liff-'+UID+'-'+Date.now()},body:JSON.stringify({points:pts})});
+    $('redeem_out').innerHTML=`<span class="ok">แลกสำเร็จ! เหลือ ${r.balance} แต้ม (มูลค่า ${thb(r.valueSatang)})</span>`;
+    const me = await api('/me'); render(me); loadExtras();
+  }catch(e){ $('redeem_out').innerHTML='<span class="err">'+e.message+'</span>'; }
+}
+
+// Store branding (name + logo + theme + signup fields) from public config.
+(async()=>{ try{
+  CFG = await (await fetch('/api/config')).json();
+  $('storeName').textContent = CFG.storeName||'Fruit Addicts';
+  if(CFG.hasLogo){ const l=$('storeLogo'); l.src='/api/store/logo?t='+Date.now(); l.style.display='inline'; }
+  if(CFG.theme){ document.documentElement.style.setProperty('--brand', CFG.theme.primary); document.documentElement.style.setProperty('--brand2', CFG.theme.accent); }
+}catch(e){ $('storeName').textContent='Fruit Addicts'; } })();
+
+function renderRegister(){
+  const fields = (CFG&&CFG.signupFields)||[{key:'displayName',label:'ชื่อ',type:'text',required:true},{key:'birthday',label:'วันเกิด',type:'date',required:false}];
+  const months=['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  $('r_fields').innerHTML = fields.map(f=>{
+    const id='rf_'+f.key; const req=f.required?' *':'';
+    const lbl=`<label style="font-size:12px">${f.label}${req}</label>`;
+    if(f.type==='month') return `<div>${lbl}<select id="${id}" style="width:100%"><option value="">— เลือกเดือน —</option>${months.slice(1).map((n,i)=>`<option value="${i+1}">${n}</option>`).join('')}</select></div>`;
+    if(f.type==='century') return `<div>${lbl}<select id="${id}" style="width:100%"><option value="">— เลือก —</option><option value="2000">ปี 2000 ขึ้นไป (2000s)</option><option value="1900">ก่อนปี 2000 (1900s)</option></select></div>`;
+    if(f.type==='select') return `<div>${lbl}<select id="${id}" style="width:100%">${(f.options||[]).map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+    const t = f.type==='date'?'date':(f.type==='phone'?'tel':'text');
+    return `<div>${lbl}<input id="${id}" type="${t}" placeholder="${f.label}"/></div>`;
+  }).join('')
+  + `<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px"><input type="checkbox" id="rf_consent_marketing"/> <span>ยินยอมรับข่าวสาร/โปรโมชันจากทางร้าน</span></label>`;
+}
+function collectRegister(){
+  const fields = (CFG&&CFG.signupFields)||[{key:'displayName',type:'text'}];
+  const payload={extra:{}};
+  for(const f of fields){ const el=$('rf_'+f.key); if(!el) continue; const v=el.value;
+    if(f.required && !v){ throw new Error('กรุณากรอก '+f.label); }
+    if(!v) continue;
+    if(f.key==='displayName') payload.displayName=v;
+    else if(f.key==='nickname') payload.nickname=v;
+    else if(f.key==='phone') payload.phone=v;
+    else if(f.key==='birthday') payload.birthday=v;
+    else if(f.key==='birth_month') payload.birthMonth=parseInt(v,10);
+    else if(f.key==='birth_century') payload.birthCentury=parseInt(v,10);
+    else payload.extra[f.key]=v;
+  }
+  const mk=$('rf_consent_marketing'); payload.consentMarketing = mk ? mk.checked : false;
+  payload.consentService = true; // joining the loyalty program implies service consent
+  return payload;
+}
+
+// Production note: when LINE_VERIFY_ID_TOKEN=true, replace login() with LIFF SDK:
+//   await liff.init({liffId}); const idToken = liff.getIDToken();
+//   then send Authorization: Bearer <idToken> instead of x-line-user-id.
+</script>
+</body>
+</html>

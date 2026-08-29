@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fruit Addicts CRM — Staff Console</title>
+<style>
+  :root{
+    --bg:#f3f7f4; --card:#fff; --ink:#1c2b22; --muted:#5f7268; --line:#e2ebe5;
+    --brand:#0f9d58; --brand-dark:#0b7a41; --brand2:#34b36b; --accent:#0f9d58; --warn:#92400e; --warnbg:#fef3c7;
+    --radius:12px; --sidebar:#123527;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif;background:var(--bg);color:var(--ink)}
+  a{color:var(--accent)}
+  code{background:#f0f0f3;padding:1px 5px;border-radius:5px;font-size:.9em}
+  button{cursor:pointer;border:none;border-radius:8px;padding:8px 12px;background:var(--accent);color:#fff;font-weight:600;font:inherit}
+  button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  button.brand{background:var(--brand)}
+  button.sm{padding:5px 9px;font-size:13px}
+  input,select,textarea{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}
+  label{font-size:12px;color:var(--muted)}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:14px}
+  th{background:#fafafa;color:var(--muted);font-weight:600;font-size:12px}
+  tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:#eef2ff;color:#3730a3}
+  .pill.warn{background:var(--warnbg);color:var(--warn)}
+  .muted{color:var(--muted)} .err{color:#b91c1c;font-size:13px} .ok{color:#166534;font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .card h3{margin:0 0 6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .card .big{font-size:26px;font-weight:800}
+  /* login */
+  #login{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#fff,#e3f5ea)}
+  #login .box{background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px;width:340px;box-shadow:0 12px 40px rgba(0,0,0,.08)}
+  #login h1{font-size:20px;margin:0 0 4px}
+  #login .box .field{margin-top:12px}
+  /* app shell */
+  #app{display:none;grid-template-columns:220px 1fr;min-height:100vh}
+  aside{background:var(--sidebar);color:#cfd3dc;padding:16px 10px;display:flex;flex-direction:column;gap:4px}
+  aside .brand{color:#fff;font-weight:800;padding:8px 10px 14px;font-size:16px}
+  aside a{display:block;color:#cfd3dc;text-decoration:none;padding:9px 12px;border-radius:8px;font-size:14px;cursor:pointer}
+  aside a:hover{background:#1c4a36}
+  aside a.active{background:var(--brand);color:#fff}
+  aside .navgroup{font-size:10px;color:#7f8f84;padding:14px 12px 4px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  aside .who{margin-top:auto;font-size:12px;color:#9aa1b1;padding:10px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;cursor:pointer;transition:.12s;display:flex;gap:12px;align-items:flex-start}
+  .tile:hover{border-color:var(--brand);box-shadow:0 6px 18px rgba(15,157,88,.10);transform:translateY(-1px)}
+  .tile.soon{cursor:default;opacity:.7}
+  .tile.soon:hover{border-color:var(--line);box-shadow:none;transform:none}
+  .tile .ico{font-size:22px;line-height:1}
+  .tile h4{margin:0 0 4px;font-size:15px}
+  .tile p{margin:0;font-size:12px;color:var(--muted);line-height:1.4}
+  .tile .soonbadge{display:inline-block;margin-top:6px;font-size:11px;background:#eef1f4;color:#6b7280;padding:1px 7px;border-radius:999px}
+  .crumb{font-size:13px;color:var(--muted);margin-bottom:10px}
+  .crumb a{cursor:pointer}
+  .dropzone{border:2px dashed var(--line);border-radius:14px;padding:24px;text-align:center;color:var(--muted);cursor:pointer;transition:.12s;background:var(--surface-2)}
+  .dropzone.drag{border-color:var(--brand);background:var(--panel);color:var(--brand-deep)}
+  .dropzone b{color:var(--ink)}
+  .progress{height:8px;background:var(--line);border-radius:999px;overflow:hidden;margin-top:12px;display:none}
+  .progress > i{display:block;height:100%;width:0;background:var(--brand);transition:width .15s}
+  main{padding:22px;max-width:1080px}
+  main h2{font-size:18px;margin:0 0 14px}
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .grow{flex:1}
+  .linkish{color:var(--accent);cursor:pointer;text-decoration:underline}
+  .banner{background:var(--warnbg);color:var(--warn);border:1px solid #fde68a;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<!-- LOGIN -->
+<div id="login">
+  <div class="box">
+    <h1>🍉 Fruit Addicts</h1>
+    <div class="muted" style="font-size:13px">Staff Console — เข้าสู่ระบบ</div>
+    <div class="field"><label>ชื่อผู้ใช้</label><input id="l_user" autocomplete="username" /></div>
+    <div class="field"><label>รหัสผ่าน</label><input id="l_pass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" /></div>
+    <button class="brand" style="width:100%;margin-top:16px" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div id="l_err" class="err" style="margin-top:10px"></div>
+    <div class="muted" style="margin-top:14px;font-size:12px">เดโม: admin / (ADMIN_BOOTSTRAP_PASSWORD) · cashier_nimman / cashier-pilot-8</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <aside>
+    <div class="brand">🍉 Fruit Addicts</div>
+    <nav id="nav"></nav>
+    <div class="who" id="who"></div>
+    <a onclick="doLogout()" style="color:#9fe3bf">ออกจากระบบ</a>
+  </aside>
+  <main>
+    <div id="view"></div>
+  </main>
+</div>
+
+<script>
+const $=(id)=>document.getElementById(id);
+const el=(h)=>{const d=document.createElement('div');d.innerHTML=h;return d;};
+const thb=(s)=>'฿'+(s/100).toLocaleString('th-TH',{minimumFractionDigits:2});
+const esc=(s)=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let TOKEN=localStorage.getItem('fa_token')||'';
+let ME=null, PERMS=new Set(), BRANCHES=[], TIERS=[], TAGS=[];
+
+async function api(path,opts={}){
+  const res=await fetch('/api'+path,{...opts,headers:{'content-type':'application/json',authorization:'Bearer '+TOKEN,...(opts.headers||{})}});
+  if(res.status===401){ logoutLocal(); throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่'); }
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data?.error?.message||('HTTP '+res.status));
+  return data;
+}
+const can=(p)=>PERMS.has(p);
+
+async function doLogin(){
+  $('l_err').textContent='';
+  try{
+    const r=await fetch('/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:$('l_user').value,password:$('l_pass').value})});
+    const d=await r.json(); if(!r.ok) throw new Error(d?.error?.message||'เข้าสู่ระบบไม่สำเร็จ');
+    TOKEN=d.token; localStorage.setItem('fa_token',TOKEN); await boot();
+  }catch(e){ $('l_err').textContent=e.message; }
+}
+function logoutLocal(){ TOKEN=''; localStorage.removeItem('fa_token'); $('app').style.display='none'; $('login').style.display='grid'; }
+async function doLogout(){ try{ await api('/auth/logout',{method:'POST'}); }catch(e){} logoutLocal(); }
+
+const NAV=[
+  {group:'ภาพรวม',items:[{id:'dashboard',label:'📊 แดชบอร์ด',perm:'reports.read'}]},
+  {group:'ลูกค้า',items:[
+    {id:'members',label:'👤 สมาชิก',perm:'members.read'},
+    {id:'referral',label:'🤝 แนะนำเพื่อน',perm:'referrals.read'},
+  ]},
+  {group:'การขาย',items:[
+    {id:'pos',label:'🧾 POS / บันทึกซื้อ',perm:'transactions.create'},
+    {id:'receipts',label:'📸 ใบเสร็จรออนุมัติ',perm:'receipts.review'},
+    {id:'posimport',label:'📥 นำเข้า POS / สินค้า',perm:'pos.import'},
+    {id:'coupons',label:'🎟️ คูปอง / ของรางวัล',perm:'coupons.read'},
+  ]},
+  {group:'การตลาด',items:[
+    {id:'campaigns',label:'📣 แคมเปญ / Broadcast',perm:'campaigns.read'},
+    {id:'richmenu',label:'🧩 Rich Menu',perm:'campaigns.read'},
+  ]},
+  {group:'ตั้งค่า',items:[
+    {id:'store',label:'🏪 ตั้งค่าร้านค้า',perm:'__store'},
+    {id:'audit',label:'📜 Audit log',perm:'audit.read'},
+  ]},
+];
+// store hub is visible if the user can manage any store-settings area
+function canSee(perm){ return perm==='__store' ? (can('settings.manage')||can('branches.manage')||can('users.manage')) : can(perm); }
+const STORE_SUBVIEWS=['store','store_info','branches','points_settings','tiers','tags','theme','signup','pos','settings','users'];
+
+async function boot(){
+  const me=await api('/auth/me'); ME=me.principal; PERMS=new Set(me.permissions);
+  $('login').style.display='none'; $('app').style.display='grid';
+  $('who').innerHTML=`<b style="color:#fff">${esc(ME.username)}</b><br>${ME.roles.join(', ')}${ME.branchIds.length?'<br>สาขา: '+ME.branchIds.join(', '):''}`;
+  try{ BRANCHES=(await api('/admin/branches')).branches; }catch(e){ BRANCHES=[]; }
+  try{ TIERS=(await api('/admin/tiers')).tiers; }catch(e){ TIERS=[]; }
+  try{ TAGS=(await api('/admin/tags')).tags; }catch(e){ TAGS=[]; }
+  const nav=$('nav'); nav.innerHTML=''; let firstId=null;
+  for(const g of NAV){
+    const visible=g.items.filter(n=>canSee(n.perm));
+    if(!visible.length) continue;
+    const h=document.createElement('div'); h.className='navgroup'; h.textContent=g.group; nav.appendChild(h);
+    for(const n of visible){ const a=document.createElement('a'); a.textContent=n.label; a.id='nav_'+n.id; a.onclick=()=>go(n.id); nav.appendChild(a); if(!firstId)firstId=n.id; }
+  }
+  updateReceiptBadge();
+  go(firstId||'none');
+}
+async function updateReceiptBadge(){ if(!can('receipts.review'))return; try{ const n=(await api('/admin/receipts?status=pending')).claims.length; const a=$('nav_receipts'); if(a) a.textContent='📸 ใบเสร็จรออนุมัติ'+(n?` (${n})`:''); }catch(e){} }
+function go(id){
+  document.querySelectorAll('#nav a').forEach(a=>a.classList.remove('active'));
+  const navId=STORE_SUBVIEWS.includes(id)?'store':id;
+  const a=$('nav_'+navId); if(a)a.classList.add('active');
+  (VIEWS[id]||VIEWS.none)();
+}
+const branchName=(id)=>{const b=BRANCHES.find(x=>x.branch_id===id||x.id===id);return b?b.name:id;};
+const branchOptions=(sel)=>BRANCHES.map(b=>`<option value="${b.id}" ${b.id===sel?'selected':''}>${esc(b.name)}</option>`).join('');
+
+const VIEWS={};
+VIEWS.none=()=>{ $('view').innerHTML='<div class="card">ไม่มีสิทธิ์เข้าถึงเมนูใด ๆ ติดต่อผู้ดูแลระบบ</div>'; };
+
+// ---- Dashboard ----
+VIEWS.dashboard=async()=>{
+  $('view').innerHTML='<h2>Dashboard</h2><div id="d"></div>';
+  try{
+    const o=await api('/admin/overview');
+    const cards=[['สมาชิก',o.members],['Active 90 วัน',o.activeMembers90d],['Point liability',o.pointLiability.toLocaleString()],['ยอดขายสมาชิก',thb(o.salesFromMembersSatang)],['Transactions',o.transactions],['Coupon ใช้',o.couponRedemptions]];
+    const top=(await api('/admin/top-customers?limit=8')).customers;
+    const br=(await api('/admin/sales-by-branch')).branches;
+    $('d').innerHTML=`<div class="cards">${cards.map(([k,v])=>`<div class="card"><h3>${k}</h3><div class="big">${v}</div></div>`).join('')}</div>
+      <div class="card"><h3>Segments</h3><div>${Object.entries(o.segments).map(([k,v])=>`<span class="pill" style="margin:3px">${k}: ${v}</span>`).join('')||'—'}</div></div>
+      <div class="card"><h3>Top customers</h3><table><thead><tr><th>Member</th><th>Visits</th><th>Spend</th></tr></thead><tbody>${top.map(c=>`<tr><td>${esc(c.member_code)} <span class="muted">${esc(c.display_name||'')}</span></td><td>${c.visits}</td><td>${thb(c.spend_satang)}</td></tr>`).join('')||'<tr><td colspan=3 class=muted>—</td></tr>'}</tbody></table></div>
+      <div class="card"><h3>ยอดขายแยกสาขา</h3><table><thead><tr><th>สาขา</th><th>Txns</th><th>Sales</th><th>ลูกค้า</th></tr></thead><tbody>${br.map(b=>`<tr><td>${esc(b.name)}</td><td>${b.transactions}</td><td>${thb(b.sales_satang)}</td><td>${b.unique_members}</td></tr>`).join('')}</tbody></table></div>`;
+  }catch(e){ $('d').innerHTML=`<div class="banner">${esc(e.message)} — Dashboard เป็นรายงานรวมทุกสาขา ต้องใช้บทบาทที่เข้าถึงได้ทุกสาขา</div>`; }
+};
+
+// ---- Members ----
+VIEWS.members=async()=>{
+  $('view').innerHTML=`<h2>สมาชิก</h2>
+    <div class="row" style="margin-bottom:12px"><div class="field"><label>ค้นหา</label><input id="m_q" placeholder="ชื่อ/เบอร์/รหัส"/></div>
+    <button onclick="loadMembers()">ค้นหา</button>${can('members.write')?'<button class="ghost" onclick="newMemberForm()">+ เพิ่มสมาชิก</button>':''}</div>
+    <div id="m_list"></div><div id="m_detail"></div>`;
+  loadMembers();
+};
+async function loadMembers(){
+  const q=$('m_q')?.value.trim()||'';
+  const r=await api('/admin/members?limit=30'+(q?'&search='+encodeURIComponent(q):''));
+  $('m_list').innerHTML=`<table><thead><tr><th>Code</th><th>ชื่อ</th><th>Tier</th><th>สาขา</th><th></th></tr></thead><tbody>${
+    r.members.map(m=>`<tr><td>${esc(m.member_code)}</td><td>${esc(m.display_name||m.nickname||'-')}</td><td><span class="pill">${tierLabel(m.tier)}</span></td><td>${esc(branchName(m.home_branch_id))}</td><td><span class="linkish" onclick="view360(${m.id})">เปิด</span></td></tr>`).join('')||'<tr><td colspan=5 class=muted>ไม่พบ</td></tr>'
+  }</tbody></table>`;
+}
+function newMemberForm(){
+  $('m_detail').innerHTML=`<div class="card"><h3>เพิ่มสมาชิก</h3><div class="row">
+    <div class="field"><label>ชื่อ</label><input id="nm_name"/></div>
+    <div class="field"><label>เบอร์</label><input id="nm_phone"/></div>
+    <div class="field"><label>วันเกิด</label><input id="nm_bday" placeholder="YYYY-MM-DD"/></div>
+    <div class="field"><label>สาขาหลัก</label><select id="nm_branch">${branchOptions(ME.branchIds[0]||'')}</select></div>
+    <button class="brand" onclick="createMember()">บันทึก</button></div><div id="nm_out" class="muted"></div></div>`;
+}
+async function createMember(){
+  try{ const m=await api('/admin/members',{method:'POST',body:JSON.stringify({displayName:$('nm_name').value,phone:$('nm_phone').value,birthday:$('nm_bday').value||null,homeBranchId:$('nm_branch').value})});
+    $('nm_out').innerHTML='<span class="ok">เพิ่มแล้ว</span>'; loadMembers(); view360(m.member.id);
+  }catch(e){ $('nm_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; }
+}
+async function view360(id){
+  const d=await api('/admin/members/'+id+'/360'); const s=d.stats; const m=d.member;
+  let ref=''; try{ const rs=await api('/admin/members/'+id+'/referral'); ref=`<span class="pill">แนะนำ ${rs.totalReferred} (สำเร็จ ${rs.rewarded})</span>`; }catch(e){}
+  let mtags=[]; try{ mtags=(await api('/admin/members/'+id+'/tags')).tags; }catch(e){}
+  let mitems=[]; try{ mitems=(await api('/admin/members/'+id+'/items')).items; }catch(e){}
+  let consent=null; try{ consent=await api('/admin/members/'+id+'/consent'); }catch(e){}
+  const editable=can('members.write');
+  $('m_detail').innerHTML=`<div class="card">
+    <div class="row"><h3 style="margin:0">${esc(m.display_name||m.nickname||m.member_code)}</h3>${m.nickname?`<span class="muted">(${esc(m.nickname)})</span>`:''}<span class="pill" style="background:#e6f4ea;color:#0b7a41">${tierLabel(m.tier)}</span><span class="pill">${d.segment}</span>${ref}</div>
+    <div class="cards" style="margin:12px 0">
+      <div class="card"><h3>Balance</h3><div class="big">${s.pointBalance}</div></div>
+      <div class="card"><h3>Visits</h3><div class="big">${s.visits}</div></div>
+      <div class="card"><h3>CLV</h3><div class="big">${thb(d.clvSatang)}</div></div>
+      <div class="card"><h3>Recency</h3><div class="big">${s.recencyDays??'-'}</div></div>
+    </div>
+    <div style="margin:6px 0 10px"><b style="font-size:13px">แท็ก:</b> ${mtags.map(t=>tagChip(id,t,editable)).join('')||'<span class="muted">—</span>'}
+      ${editable?`<select onchange="addMTag(${id},this.value)" style="font-size:12px;margin-left:6px"><option value="">+ เพิ่มแท็ก</option>${TAGS.filter(t=>!mtags.some(x=>x.id===t.id)).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select>`:''}</div>
+    ${m.extra_json?`<div class="muted" style="font-size:12px;margin-bottom:8px">ข้อมูลเพิ่มเติม: ${Object.entries(JSON.parse(m.extra_json)).map(([k,v])=>esc(k)+': '+esc(v)).join(' · ')}</div>`:''}
+    ${editable?`<div class="row">
+      <div class="field"><label>ชื่อ</label><input id="e_name" value="${esc(m.display_name||'')}"/></div>
+      <div class="field"><label>ชื่อเล่น</label><input id="e_nick" value="${esc(m.nickname||'')}"/></div>
+      <div class="field"><label>เบอร์</label><input id="e_phone" value="${esc(m.phone||'')}"/></div>
+      <div class="field"><label>เดือนเกิด</label><select id="e_bm"><option value="">-</option>${[...Array(12)].map((_,i)=>`<option value="${i+1}" ${m.birth_month===i+1?'selected':''}>${i+1}</option>`).join('')}</select></div>
+      <div class="field"><label>ยุคเกิด</label><select id="e_bc"><option value="">-</option><option value="2000" ${m.birth_century===2000?'selected':''}>2000s</option><option value="1900" ${m.birth_century===1900?'selected':''}>1900s</option></select></div>
+      <div class="field"><label>Tier (ตั้งเอง)</label><select id="e_tier">${(TIERS.length?TIERS.map(t=>t.code):['basic','bronze']).concat(TIERS.some(t=>t.code===m.tier)?[]:[m.tier]).map(c=>`<option value="${c}" ${c===m.tier?'selected':''}>${esc(tierLabel(c))}</option>`).join('')}</select></div>
+      <div class="field"><label>สถานะ</label><select id="e_status">${['active','blocked'].map(t=>`<option ${t===m.status?'selected':''}>${t}</option>`).join('')}</select></div>
+      <button class="sm" onclick="saveMember(${id})">บันทึก</button></div>`:''}
+    ${can('points.adjust')?`<div class="row" style="margin-top:10px"><div class="field"><label>ปรับแต้ม (+/-)</label><input id="adj" type="number"/></div><button class="sm ghost" onclick="adjust(${id})">ปรับแต้ม</button><span id="adjout" class="muted"></span></div>`:''}
+    ${upgradeBlock(id, m.tier)}
+    ${pdpaBlock(id, m, consent, editable)}
+    <h3 style="margin:14px 0 6px" class="muted">ประวัติแต้ม</h3>
+    <table><thead><tr><th>Type</th><th>Δ</th><th>Balance</th><th>เมื่อ</th></tr></thead><tbody>${d.recentLedger.map(l=>`<tr><td>${l.type}</td><td>${l.delta}</td><td>${l.balance_after}</td><td class=muted>${new Date(l.created_at).toLocaleString('th-TH')}</td></tr>`).join('')||'<tr><td colspan=4 class=muted>—</td></tr>'}</tbody></table>
+    ${mitems.length?`<h3 class="muted" style="margin:14px 0 6px">สินค้าที่เคยซื้อ (จาก POS)</h3><table><thead><tr><th>วันที่</th><th>สินค้า</th><th>ยอด</th></tr></thead><tbody>${mitems.slice(0,25).map(x=>`<tr><td class=muted>${esc(x.bill_date||'')}</td><td>${esc(String(x.name).slice(0,44))}</td><td>${thb(x.net_satang)}</td></tr>`).join('')}</tbody></table>`:''}
+  </div>`;
+}
+async function saveMember(id){ try{ const bm=$('e_bm').value, bc=$('e_bc').value; await api('/admin/members/'+id,{method:'PATCH',body:JSON.stringify({displayName:$('e_name').value,nickname:$('e_nick').value,phone:$('e_phone').value,birthMonth:bm?parseInt(bm,10):null,birthCentury:bc?parseInt(bc,10):null,tier:$('e_tier').value,status:$('e_status').value})}); view360(id); loadMembers(); }catch(e){ alert(e.message);} }
+async function adjust(id){ const v=parseInt($('adj').value,10); if(!v)return; try{ await api('/admin/members/'+id+'/points/adjust',{method:'POST',headers:{'idempotency-key':'adj-'+id+'-'+Date.now()},body:JSON.stringify({delta:v,note:'console'})}); view360(id);}catch(e){ $('adjout').innerHTML='<span class=err>'+esc(e.message)+'</span>'; } }
+const tierLabel=(code)=>{const t=TIERS.find(x=>x.code===code);return t?t.name:(code||'-');};
+const tagChip=(id,t,ed)=>`<span class="pill" style="background:${t.color||'#0f9d58'};color:#fff;margin-right:4px">${esc(t.name)}${ed?` <span style="cursor:pointer" onclick="rmMTag(${id},${t.id})">✕</span>`:''}</span>`;
+async function addMTag(id,tagId){ if(!tagId)return; try{ await api('/admin/members/'+id+'/tags',{method:'POST',body:JSON.stringify({tagId:parseInt(tagId,10)})}); view360(id); }catch(e){ alert(e.message); } }
+async function rmMTag(id,tagId){ try{ await api('/admin/members/'+id+'/tags/'+tagId,{method:'DELETE'}); view360(id); }catch(e){ alert(e.message); } }
+function pdpaBlock(id,m,consent,editable){
+  if(!consent) return '';
+  const anon = m.status==='anonymized' || m.anonymized_at;
+  if(anon) return `<div class="card" style="margin-top:12px;border-color:#cbd5cb"><h3 class="muted">PDPA</h3><span class="pill" style="background:#eee">ลบข้อมูลส่วนตัวแล้ว (${m.anonymized_at?new Date(m.anonymized_at).toLocaleDateString('th-TH'):''})</span></div>`;
+  const c=consent.consent||consent;
+  const hist=(consent.history||[]);
+  const chk=(k,label)=>`<label style="margin-right:16px;font-size:13px"><input type="checkbox" id="cons_${k}" ${c[k]?'checked':''} ${editable?'':'disabled'}/> ${label}</label>`;
+  return `<div class="card" style="margin-top:12px">
+    <div class="row"><h3 style="margin:0">PDPA · ความยินยอม</h3>
+      <button class="sm ghost" onclick="exportMemberUI(${id})">⬇ Export ข้อมูล (JSON)</button></div>
+    <div style="margin:8px 0">${chk('service','บริการ/ระบบสมาชิก')} ${chk('marketing','การตลาด/โปรโมชัน')}
+      ${editable?`<button class="sm" onclick="saveConsent(${id})">บันทึกความยินยอม</button>`:''}
+      <span class="muted" style="font-size:12px">อัปเดตล่าสุด: ${c.updated_at?new Date(c.updated_at).toLocaleString('th-TH'):'-'}</span></div>
+    ${hist.length?`<details style="margin:4px 0"><summary class="muted" style="font-size:12px;cursor:pointer">ประวัติความยินยอม (${hist.length})</summary>
+      <table style="margin-top:6px"><thead><tr><th>เมื่อ</th><th>บริการ</th><th>การตลาด</th><th>ที่มา</th></tr></thead><tbody>${hist.map(h=>`<tr><td class=muted>${new Date(h.created_at).toLocaleString('th-TH')}</td><td>${h.consent_service?'✓':'—'}</td><td>${h.consent_marketing?'✓':'—'}</td><td>${esc(h.source||'')}</td></tr>`).join('')}</tbody></table></details>`:''}
+    ${editable?`<div style="margin-top:10px;border-top:1px solid #eee;padding-top:10px"><span class="muted" style="font-size:12px">สิทธิการลบข้อมูล — ลบข้อมูลส่วนตัวถาวร (เก็บประวัติการเงินไว้เพื่อบัญชี) ย้อนกลับไม่ได้</span><br>
+      <button class="sm" style="background:#b3261e;margin-top:6px" onclick="anonymizeUI(${id})">🗑 ลบข้อมูลส่วนตัว (Anonymize)</button></div>`:''}
+  </div>`;
+}
+async function saveConsent(id){ try{ await api('/admin/members/'+id+'/consent',{method:'POST',body:JSON.stringify({service:$('cons_service').checked,marketing:$('cons_marketing').checked})}); view360(id); }catch(e){ alert(e.message); } }
+async function exportMemberUI(id){ try{ const d=await api('/admin/members/'+id+'/export'); const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='member-'+id+'-export.json'; a.click(); URL.revokeObjectURL(a.href); }catch(e){ alert(e.message); } }
+async function anonymizeUI(id){ if(!confirm('ยืนยันการลบข้อมูลส่วนตัวของสมาชิกนี้แบบถาวร?\nชื่อ/เบอร์/LINE จะถูกลบและย้อนกลับไม่ได้ (ประวัติการเงินยังอยู่)'))return; const reason=prompt('เหตุผล (เช่น ลูกค้าร้องขอ):','ลูกค้าร้องขอ'); if(reason===null)return; try{ await api('/admin/members/'+id+'/anonymize',{method:'POST',body:JSON.stringify({reason})}); view360(id); loadMembers(); }catch(e){ alert(e.message); } }
+function upgradeBlock(id,cur){
+  if(!can('membership.manage')) return '';
+  const curLevel=(TIERS.find(t=>t.code===cur)||{level:0}).level;
+  const higher=TIERS.filter(t=>t.level>curLevel);
+  const opts=higher.filter(t=>t.price_satang>0);
+  if(!opts.length) return '<div class="muted" style="margin-top:10px">'+(higher.length?'ยังไม่เปิดให้ซื้ออัปเกรด (ตั้งราคาได้ที่เมนู “ระดับสมาชิก”) — ระดับเลื่อนอัตโนมัติตามพอยท์สะสม':'อยู่ระดับสมาชิกสูงสุดแล้ว')+'</div>';
+  const branchOpts=BRANCHES.filter(b=>ME.branchIds.length===0||ME.branchIds.includes(b.id)).map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  return `<div class="card" style="margin-top:12px;background:#f2fbf5"><h3 style="margin:0 0 8px">อัปเกรดสมาชิก (จ่ายเงิน — เก็บเงินหน้าร้านก่อน)</h3><div class="row">
+    <div class="field"><label>ระดับ</label><select id="up_tier">${opts.map(t=>`<option value="${t.code}">${esc(t.name)} — ฿${(t.price_satang/100).toFixed(0)} • ลด ${(t.discount_bps/100)}% • x${(t.earn_multiplier_bps/10000)} แต้ม • +${t.upgrade_bonus_points}</option>`).join('')}</select></div>
+    <div class="field"><label>สาขา</label><select id="up_branch">${branchOpts}</select></div>
+    <button class="brand sm" onclick="upgradeMember(${id})">ยืนยันรับเงินแล้ว + อัปเกรด</button></div><div id="up_out" class="muted" style="margin-top:6px"></div></div>`;
+}
+async function upgradeMember(id){
+  const tierCode=$('up_tier').value; const t=TIERS.find(x=>x.code===tierCode)||{price_satang:0,name:tierCode};
+  if(!confirm(`ยืนยันว่ารับเงินค่าสมาชิก ฿${(t.price_satang/100).toFixed(0)} แล้ว และอัปเกรดเป็น ${t.name}?`)) return;
+  try{ await api('/admin/members/'+id+'/upgrade',{method:'POST',headers:{'idempotency-key':'up-'+id+'-'+Date.now()},body:JSON.stringify({tierCode,branchId:$('up_branch').value})});
+    view360(id); loadMembers();
+  }catch(e){ $('up_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; }
+}
+
+// ---- Receipt claims (staff review) ----
+VIEWS.receipts=async()=>{
+  const status=window.__rcStatus||'pending';
+  const cs=(await api('/admin/receipts?status='+status)).claims;
+  const tabs={pending:'รอตรวจ',approved:'อนุมัติแล้ว',rejected:'ไม่ผ่าน'};
+  $('view').innerHTML=`<h2>ใบเสร็จรออนุมัติ</h2>
+    <div class="banner">ลูกค้าถ่ายรูปใบเสร็จส่งเข้ามา — ตรวจรูป ยืนยันยอด แล้วอนุมัติเพื่อให้แต้ม (กันบิลซ้ำด้วยรหัส ID)</div>
+    <div class="row" style="margin-bottom:12px">${Object.entries(tabs).map(([s,l])=>`<button class="sm ${s===status?'':'ghost'}" onclick="rcFilter('${s}')">${l}</button>`).join(' ')}</div>
+    <div id="rc_items"></div>`;
+  $('rc_items').innerHTML = cs.length? cs.map(rcCard).join('') : '<div class="card"><span class="muted">ไม่มีรายการ</span></div>';
+  cs.forEach(c=>loadClaimImg(c.id));
+  updateReceiptBadge();
+};
+function rcFilter(s){ window.__rcStatus=s; VIEWS.receipts(); }
+function rcCard(c){
+  const st=c.status==='approved'?`<span class="pill" style="background:#e6f4ea;color:#0b7a41">อนุมัติ +${c.points_awarded}</span>`:(c.status==='rejected'?'<span class="pill warn">ไม่ผ่าน</span>':'<span class="pill warn">รอตรวจ</span>');
+  const editable=c.status==='pending';
+  return `<div class="card" style="margin-bottom:12px;padding:14px"><div class="row" style="align-items:flex-start;gap:14px">
+    <img id="ci_${c.id}" alt="receipt" style="width:120px;max-height:200px;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:pointer;background:var(--surface-2)" onclick="if(this.src)window.open(this.src)"/>
+    <div style="flex:1;min-width:220px">
+      <div><b>สมาชิก #${c.member_id}</b> · สาขา ${esc(branchName(c.branch_id)||'-')} &nbsp;${st}</div>
+      <div class="muted" style="font-size:12px;margin-top:2px">รหัสบิล: <code>${esc(c.receipt_code||'-')}</code> · วันบิล ${esc(c.receipt_date||'-')} · ลูกค้าแจ้ง ${c.claimed_total_satang?thb(c.claimed_total_satang):'-'} · ส่งเมื่อ ${new Date(c.created_at).toLocaleString('th-TH')}</div>
+      ${editable?`<div class="muted" style="font-size:12px;margin-top:8px">อ่านจากรูป แล้วกรอก:</div>
+        <div class="row" style="margin-top:6px">
+        <div class="field"><label>สาขา</label><select id="br_${c.id}"><option value="">— เลือก —</option>${BRANCHES.filter(b=>ME.branchIds.length===0||ME.branchIds.includes(b.id)).map(b=>`<option value="${b.id}" ${c.branch_id===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>
+        <div class="field"><label>รหัสบิล (ID)</label><input id="code_${c.id}" placeholder="เช่น OH6JK" value="${esc(c.receipt_code||'')}"/></div>
+        <div class="field"><label>ยอดเงิน (บาท)</label><input id="amt_${c.id}" type="number" placeholder="เช่น 69" value="${c.claimed_total_satang?(c.claimed_total_satang/100):''}"/></div>
+        <button class="brand sm" onclick="approveReceipt(${c.id})">อนุมัติ + ให้แต้ม</button>
+        <button class="sm ghost" onclick="rejectReceipt(${c.id})">ไม่ผ่าน</button></div>
+        <div id="rcout_${c.id}" class="muted" style="margin-top:4px"></div>`
+        :(c.status==='approved'?`<div class="muted" style="font-size:13px;margin-top:6px">ให้ ${c.points_awarded} แต้ม · ยอด ${thb(c.awarded_total_satang||0)}</div>`
+        :`<div class="muted" style="font-size:13px;margin-top:6px">เหตุผล: ${esc(c.reject_reason||'-')}</div>`)}
+    </div></div></div>`;
+}
+async function loadClaimImg(id){ try{ const res=await fetch('/api/admin/receipts/'+id+'/image',{headers:{authorization:'Bearer '+TOKEN}}); if(!res.ok)return; const b=await res.blob(); const el=$('ci_'+id); if(el) el.src=URL.createObjectURL(b); }catch(e){} }
+async function approveReceipt(id){ const amt=parseInt($('amt_'+id).value,10); const br=$('br_'+id).value; if(!br){ $('rcout_'+id).innerHTML='<span class="err">เลือกสาขาก่อน</span>'; return; } if(!amt){ $('rcout_'+id).innerHTML='<span class="err">ใส่ยอดเงิน (บาท) ก่อน</span>'; return; } try{ await api('/admin/receipts/'+id+'/approve',{method:'POST',headers:{'idempotency-key':'rc-'+id},body:JSON.stringify({awardedTotal:amt,branchId:br,receiptCode:$('code_'+id).value.trim()||null})}); VIEWS.receipts(); }catch(e){ $('rcout_'+id).innerHTML='<span class="err">'+esc(e.message)+'</span>'; } }
+async function rejectReceipt(id){ const reason=prompt('เหตุผลที่ไม่ผ่าน?'); if(reason===null)return; try{ await api('/admin/receipts/'+id+'/reject',{method:'POST',body:JSON.stringify({reason})}); VIEWS.receipts(); }catch(e){ alert(e.message); } }
+
+// ---- POS CSV import + product reports ----
+VIEWS.posimport=async()=>{
+  $('view').innerHTML=`<h2>นำเข้า POS (FoodStory) + รายงานสินค้า</h2>
+    <div class="card"><h3>นำเข้าไฟล์ยอดขาย (CSV)</h3>
+      <div class="muted" style="font-size:13px;margin-bottom:10px">FoodStory → รายงาน → ยอดขายแยกตามบิล (sale-by-bill-detail) → export CSV • ระบบจับคู่รหัสบิลกับใบเสร็จลูกค้า → ให้แต้มยอดจริงอัตโนมัติ + เก็บรายการสินค้า</div>
+      <div id="dz" class="dropzone">📥 ลากไฟล์ CSV มาวางที่นี่ หรือ <b>คลิกเพื่อเลือกไฟล์</b><div id="dz_name" class="muted" style="margin-top:6px"></div></div>
+      <input id="pi_file" type="file" accept=".csv,text/csv" style="display:none"/>
+      <div class="progress" id="pi_prog"><i></i></div>
+      <div id="pi_out" style="margin-top:10px"></div></div>
+    <div class="card"><h3>ประวัติการนำเข้า</h3><div id="pi_hist"></div></div>
+    <div class="cols">
+      <div class="card"><h3>สินค้าขายดี (ตามยอด)</h3><div id="pi_top"><span class="muted">ยังไม่มีข้อมูล</span></div></div>
+      <div class="card"><h3>ยอดขายตามหมวด</h3><div id="pi_cat"></div></div>
+    </div>`;
+  const dz=$('dz'), inp=$('pi_file');
+  dz.onclick=()=>inp.click();
+  inp.onchange=()=>{ if(inp.files[0]) startImport(inp.files[0]); };
+  dz.ondragover=(e)=>{ e.preventDefault(); dz.classList.add('drag'); };
+  dz.ondragleave=()=>dz.classList.remove('drag');
+  dz.ondrop=(e)=>{ e.preventDefault(); dz.classList.remove('drag'); const f=e.dataTransfer.files[0]; if(f) startImport(f); };
+  loadImports(); loadProductReports();
+};
+function uploadCsv(file,onProgress){
+  return new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open('POST','/api/admin/pos-import?filename='+encodeURIComponent(file.name));
+    xhr.setRequestHeader('authorization','Bearer '+TOKEN);
+    xhr.setRequestHeader('content-type','text/csv; charset=utf-8');
+    xhr.upload.onprogress=(e)=>{ if(e.lengthComputable) onProgress(Math.round(e.loaded/e.total*100)); };
+    xhr.onload=()=>{ if(xhr.status>=200&&xhr.status<300){ try{resolve(JSON.parse(xhr.responseText))}catch(e){resolve({})} } else { let m='HTTP '+xhr.status; try{m=JSON.parse(xhr.responseText).error.message}catch(e){} reject(new Error(m)); } };
+    xhr.onerror=()=>reject(new Error('อัปโหลดล้มเหลว'));
+    file.text().then(t=>xhr.send(t)).catch(()=>reject(new Error('อ่านไฟล์ไม่ได้')));
+  });
+}
+async function startImport(file){
+  if(!/\.csv$/i.test(file.name)){ $('pi_out').innerHTML='<span class="err">กรุณาเลือกไฟล์ .csv</span>'; return; }
+  $('dz_name').textContent='ไฟล์: '+file.name+' ('+(file.size/1048576).toFixed(1)+' MB)';
+  const bar=$('pi_prog'), fill=bar.querySelector('i'); bar.style.display='block'; fill.style.width='0'; $('pi_out').innerHTML='<span class="muted">กำลังอัปโหลด...</span>';
+  try{
+    const r=await uploadCsv(file,(p)=>{ fill.style.width=p+'%'; if(p>=100) $('pi_out').innerHTML='<span class="muted">กำลังประมวลผล...</span>'; });
+    window.__unmapped=r.unmappedBranches||[];
+    let html=`<span class="ok">นำเข้าแล้ว: ${r.billsImported} บิล · ${r.itemsImported} รายการ · ข้ามซ้ำ ${r.billsSkipped} · จับคู่+อนุมัติใบเสร็จ ${r.claimsApproved}</span>`;
+    if(window.__unmapped.length){
+      html+='<div class="banner" style="margin-top:10px"><b>สาขาที่ยังไม่ได้จับคู่</b> — เลือกสาขาแล้วกด “จับคู่” (บิลจะถูกอัปเดตให้เอง):'+
+        window.__unmapped.map((b,i)=>`<div class="row" style="margin-top:6px;align-items:center"><span style="min-width:230px">${esc(b)}</span><select id="al_${i}">${BRANCHES.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select><button class="sm" onclick="mapBranch(${i})">จับคู่สาขา</button></div>`).join('')+'</div>';
+    }
+    $('pi_out').innerHTML=html; setTimeout(()=>{ bar.style.display='none'; },800);
+    loadImports(); loadProductReports();
+  }catch(e){ bar.style.display='none'; $('pi_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; }
+}
+async function loadImports(){ try{ const h=(await api('/admin/pos-imports')).imports;
+  $('pi_hist').innerHTML=h.length?`<table><thead><tr><th>เมื่อ</th><th>ไฟล์</th><th>บิล</th><th>รายการ</th><th>ข้ามซ้ำ</th><th>จับคู่</th><th>โดย</th></tr></thead><tbody>${h.map(x=>`<tr><td class=muted>${new Date(x.created_at).toLocaleString('th-TH')}</td><td>${esc(String(x.filename||'').slice(0,36))}</td><td>${x.bills_imported}</td><td>${x.items_imported}</td><td>${x.bills_skipped}</td><td>${x.claims_approved}</td><td>${esc(x.actor_username||'-')}</td></tr>`).join('')}</tbody></table>`:'<span class="muted">ยังไม่เคยนำเข้า</span>';
+}catch(e){} }
+async function mapBranch(i){ const alias=window.__unmapped[i]; const branchId=$('al_'+i).value; try{ const r=await api('/admin/branch-aliases',{method:'POST',body:JSON.stringify({alias,branchId})}); alert('จับคู่แล้ว: '+alias+' → '+branchId+' • อัปเดตบิลของสาขานี้แล้ว'+(r.matched?(' • จับคู่ใบเสร็จเพิ่ม '+r.matched.approved):'')); }catch(e){ alert(e.message); } }
+async function loadProductReports(){
+  try{ const top=(await api('/admin/products/top?limit=15')).products;
+    $('pi_top').innerHTML=top.length?`<table><thead><tr><th>สินค้า</th><th>จำนวน</th><th>ยอด</th></tr></thead><tbody>${top.map(p=>`<tr><td>${esc(String(p.name).slice(0,44))}</td><td>${p.qty}</td><td>${thb(p.sales_satang)}</td></tr>`).join('')}</tbody></table>`:'<span class="muted">ยังไม่มีข้อมูล</span>';
+    const cat=(await api('/admin/products/categories')).categories;
+    $('pi_cat').innerHTML=cat.length?`<table><thead><tr><th>หมวด</th><th>จำนวน</th><th>ยอด</th></tr></thead><tbody>${cat.map(c=>`<tr><td>${esc(c.category)}</td><td>${c.qty}</td><td>${thb(c.sales_satang)}</td></tr>`).join('')}</tbody></table>`:'<span class="muted">—</span>';
+  }catch(e){}
+}
+
+// ---- POS ----
+VIEWS.pos=async()=>{
+  const opts=BRANCHES.filter(b=>ME.branchIds.length===0||ME.branchIds.includes(b.id)).map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  $('view').innerHTML=`<h2>POS / บันทึกการซื้อ</h2><div class="card"><div class="row">
+    <div class="field"><label>Member ID</label><input id="p_member" type="number"/></div>
+    <div class="field"><label>สาขา</label><select id="p_branch">${opts}</select></div>
+    <div class="field"><label>ยอด (บาท)</label><input id="p_amt" type="number"/></div>
+    <div class="field"><label>คูปอง (ถ้ามี)</label><input id="p_coupon"/></div>
+    <button class="brand" onclick="pos()">บันทึก</button></div><div id="p_out" style="margin-top:10px"></div></div>`;
+};
+async function pos(){
+  try{ const body={memberId:parseInt($('p_member').value,10),branchId:$('p_branch').value,grossAmount:Math.round(parseFloat($('p_amt').value)*100)};
+    const c=$('p_coupon').value.trim(); if(c)body.couponCode=c;
+    const r=await api('/admin/transactions',{method:'POST',headers:{'idempotency-key':'pos-'+Date.now()},body:JSON.stringify(body)});
+    $('p_out').innerHTML=`<span class="ok">บันทึกแล้ว • ได้ ${r.pointsEarned} แต้ม • balance ${r.balance} • net ${thb(r.netAmount)}${r.referralRewarded?' • 🤝 referral reward!':''}</span>`;
+  }catch(e){ $('p_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; }
+}
+
+// ---- Coupons ----
+VIEWS.coupons=async()=>{
+  const list=(await api('/admin/coupons')).coupons;
+  $('view').innerHTML=`<h2>คูปอง</h2>
+    ${can('coupons.write')?`<div class="card"><h3>สร้างคูปอง</h3><div class="row">
+      <div class="field"><label>Code</label><input id="c_code"/></div>
+      <div class="field"><label>ชื่อ</label><input id="c_name"/></div>
+      <div class="field"><label>ประเภท</label><select id="c_type"><option value="percent">percent</option><option value="amount">amount</option><option value="point_multiplier">point_multiplier</option><option value="buy_x_get_y">buy_x_get_y</option></select></div>
+      <div class="field"><label>value</label><input id="c_value" type="number" placeholder="1000=10% / 5000=฿50 / 200=2x"/></div>
+      <button onclick="createCoupon()">สร้าง</button></div><div id="c_out" class="muted"></div></div>`:''}
+    <table><thead><tr><th>Code</th><th>ชื่อ</th><th>ประเภท</th><th>value</th><th>ใช้ไป</th><th>สถานะ</th></tr></thead><tbody>${
+      list.map(c=>`<tr><td><code>${esc(c.code)}</code></td><td>${esc(c.name)}</td><td>${c.type}</td><td>${c.value}</td><td>${c.total_redeemed}${c.total_limit?'/'+c.total_limit:''}</td><td>${c.status}</td></tr>`).join('')||'<tr><td colspan=6 class=muted>—</td></tr>'
+    }</tbody></table>`;
+};
+async function createCoupon(){ try{ await api('/admin/coupons',{method:'POST',body:JSON.stringify({code:$('c_code').value,name:$('c_name').value,type:$('c_type').value,value:parseInt($('c_value').value,10)})}); VIEWS.coupons(); }catch(e){ $('c_out').innerHTML='<span class=err>'+esc(e.message)+'</span>'; } }
+
+// ---- Referral ----
+VIEWS.referral=async()=>{
+  const list=(await api('/admin/referrals')).referrals;
+  let enabled=false; try{ const p=(await api('/admin/settings')).policies; enabled=[].concat(...Object.values(p)).find(x=>x.key==='referral.enabled')?.value; }catch(e){}
+  $('view').innerHTML=`<h2>แนะนำเพื่อน (Referral)</h2>
+    <div class="banner">สถานะระบบ: <b>${enabled?'เปิด':'ปิด'}</b>. ${enabled?'':'เปิดใช้งานและตั้งค่ารางวัลได้ที่เมนู “ตั้งค่าธุรกิจ” (referral.enabled / referral.reward)'} </div>
+    <table><thead><tr><th>#</th><th>ผู้แนะนำ</th><th>ผู้ถูกแนะนำ</th><th>สถานะ</th><th>แต้ม (ผู้แนะนำ/ผู้ถูกฯ)</th><th>เมื่อ</th></tr></thead><tbody>${
+      list.map(r=>`<tr><td>${r.id}</td><td>#${r.referrer_member_id}</td><td>#${r.referred_member_id}</td><td><span class="pill ${r.status==='pending'?'warn':''}">${r.status}</span></td><td>${r.referrer_points}/${r.referee_points}</td><td class=muted>${new Date(r.created_at).toLocaleDateString('th-TH')}</td></tr>`).join('')||'<tr><td colspan=6 class=muted>ยังไม่มี referral</td></tr>'
+    }</tbody></table>`;
+};
+
+// ---- Campaigns / Broadcast ----
+const SEGMENTS=[['new','ใหม่'],['loyal','ประจำ'],['vip','VIP'],['at_risk','เริ่มห่าง'],['lost','หายไป'],['active','ใช้งาน'],['prospect','ยังไม่ซื้อ']];
+let CAMP_COUPONS=[];
+VIEWS.campaigns=async()=>{
+  const list=(await api('/admin/campaigns')).campaigns;
+  try{ CAMP_COUPONS=(await api('/admin/coupons')).coupons; }catch(e){ CAMP_COUPONS=[]; }
+  const canWrite=can('campaigns.write'), canSend=can('campaigns.send');
+  const months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  $('view').innerHTML=`<h2>แคมเปญ / Broadcast</h2>
+    <div class="banner">ข้อความจะถูกส่งผ่านคิว (worker เป็นผู้ส่งจริง) และ<b>ส่งเฉพาะสมาชิกที่ยินยอมรับการตลาด</b> (PDPA) เท่านั้น ยกเว้นติ๊ก “ข้อความบริการ”</div>
+    ${canWrite?`<div class="card"><h3>สร้างแคมเปญ</h3>
+      <div class="row">
+        <div class="field" style="flex:2"><label>ชื่อแคมเปญ</label><input id="cp_name" placeholder="เช่น โปรเดือนเกิด ส.ค."/></div>
+        <div class="field"><label>คูปองแนบ (ถ้ามี)</label><select id="cp_coupon"><option value="">— ไม่แนบ —</option>${CAMP_COUPONS.map(c=>`<option value="${c.id}">${esc(c.code)} — ${esc(c.name)}</option>`).join('')}</select></div>
+        <div class="field"><label>ตั้งเวลาส่ง (ถ้าเว้น = ส่งเอง)</label><input id="cp_sched" type="datetime-local"/></div>
+      </div>
+      <div class="field"><label>ข้อความ</label><textarea id="cp_text" rows="3" placeholder="พิมพ์ข้อความที่จะส่งถึงสมาชิก..." style="width:100%"></textarea></div>
+      <h4 style="margin:10px 0 4px">กลุ่มเป้าหมาย (เว้นว่าง = ทุกคนที่ยินยอม)</h4>
+      <div class="row" style="flex-wrap:wrap;gap:16px">
+        <div><b style="font-size:12px">Segment</b><br>${SEGMENTS.map(([v,l])=>`<label style="font-size:12px;margin-right:8px"><input type="checkbox" class="cp_seg" value="${v}"/> ${l}</label>`).join('')}</div>
+        <div><b style="font-size:12px">ระดับสมาชิก</b><br>${TIERS.map(t=>`<label style="font-size:12px;margin-right:8px"><input type="checkbox" class="cp_tier" value="${t.code}"/> ${esc(t.name)}</label>`).join('')||'<span class=muted>—</span>'}</div>
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:16px;margin-top:8px">
+        <div><b style="font-size:12px">แท็ก</b><br>${TAGS.map(t=>`<label style="font-size:12px;margin-right:8px"><input type="checkbox" class="cp_tag" value="${t.id}"/> ${esc(t.name)}</label>`).join('')||'<span class=muted>—</span>'}</div>
+        <div><b style="font-size:12px">สาขา (home)</b><br>${BRANCHES.map(b=>`<label style="font-size:12px;margin-right:8px"><input type="checkbox" class="cp_branch" value="${b.id}"/> ${esc(b.name)}</label>`).join('')}</div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="field"><label>เดือนเกิด</label><select id="cp_bmonth"><option value="">— ไม่ระบุ —</option>${months.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select></div>
+        <div class="field"><label>ยอดซื้อสะสม ≥ (บาท)</label><input id="cp_minspend" type="number" min="0" placeholder="เช่น 5000"/></div>
+        <div class="field"><label>ซื้อภายใน ≤ (วัน)</label><input id="cp_recency" type="number" min="0" placeholder="เช่น 60"/></div>
+        <div class="field" style="justify-content:flex-end"><label style="font-size:12px"><input type="checkbox" id="cp_service"/> ข้อความบริการ (ข้ามการยินยอมการตลาด)</label></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="ghost" onclick="previewCampaign()">👁 ดูจำนวนเป้าหมาย</button>
+        <button onclick="saveCampaign()">บันทึกแคมเปญ</button>
+        <span id="cp_out" class="muted"></span>
+      </div>
+      <div id="cp_preview" class="muted" style="margin-top:8px"></div>
+    </div>`:''}
+    <table><thead><tr><th>#</th><th>ชื่อ</th><th>สถานะ</th><th>เป้าหมาย</th><th>ส่ง/ข้าม</th><th>กำหนดส่ง</th><th></th></tr></thead><tbody>${
+      list.map(c=>`<tr><td>${c.id}</td><td>${esc(c.name)}${c.coupon_id?' 🎁':''}</td><td><span class="pill ${c.status==='sent'?'':(c.status==='cancelled'?'warn':'')}">${campStatus(c.status)}</span></td><td>${c.audience_size??'-'}</td><td>${c.sent_count}/${c.skipped_count}</td><td class=muted>${c.scheduled_at?new Date(c.scheduled_at).toLocaleString('th-TH'):'—'}</td><td><span class="linkish" onclick="viewCampaign(${c.id})">รายละเอียด</span>${canSend&&(c.status==='draft'||c.status==='scheduled')?` · <span class="linkish" onclick="sendCampaign(${c.id})">ส่งเลย</span>`:''}${canWrite&&c.status!=='sent'&&c.status!=='cancelled'?` · <span class="linkish" onclick="cancelCampaign(${c.id})">ยกเลิก</span>`:''}</td></tr>`).join('')||'<tr><td colspan=7 class=muted>ยังไม่มีแคมเปญ</td></tr>'
+    }</tbody></table>
+    <div id="camp_detail" style="margin-top:14px"></div>`;
+};
+const campStatus=(s)=>({draft:'ร่าง',scheduled:'ตั้งเวลา',sending:'กำลังส่ง',sent:'ส่งแล้ว',cancelled:'ยกเลิก'}[s]||s);
+function collectAudience(){
+  const pick=(cls)=>[...document.querySelectorAll('.'+cls+':checked')].map(x=>x.value);
+  const a={};
+  const seg=pick('cp_seg'); if(seg.length) a.segments=seg;
+  const tier=pick('cp_tier'); if(tier.length) a.tiers=tier;
+  const tags=pick('cp_tag').map(x=>parseInt(x,10)); if(tags.length) a.tagIds=tags;
+  const br=pick('cp_branch'); if(br.length) a.branchIds=br;
+  const bm=$('cp_bmonth').value; if(bm) a.birthMonth=parseInt(bm,10);
+  const ms=$('cp_minspend').value; if(ms) a.minSpendSatang=Math.round(parseFloat(ms)*100);
+  const rc=$('cp_recency').value; if(rc) a.maxRecencyDays=parseInt(rc,10);
+  if($('cp_service').checked) a.requireMarketingConsent=false;
+  return a;
+}
+async function previewCampaign(){ try{ const p=await api('/admin/campaigns/preview',{method:'POST',body:JSON.stringify({audience:collectAudience()})});
+  $('cp_preview').innerHTML=`เป้าหมายที่จะได้รับ: <b style="color:#0b7a41">${p.eligibleCount}</b> คน · ตรงเงื่อนไข ${p.matched} · ข้าม (ไม่ยินยอม/ไม่มี LINE) ${p.skippedNoConsent}${p.sample.length?'<br><span style="font-size:12px">ตัวอย่าง: '+p.sample.map(s=>esc(s.name||s.code)).join(', ')+'</span>':''}`;
+}catch(e){ $('cp_preview').innerHTML='<span class=err>'+esc(e.message)+'</span>'; } }
+async function saveCampaign(){ const name=$('cp_name').value.trim(), text=$('cp_text').value.trim();
+  if(!name||!text){ $('cp_out').innerHTML='<span class=err>กรอกชื่อและข้อความ</span>'; return; }
+  const body={name,text,audience:collectAudience()};
+  const coupon=$('cp_coupon').value; if(coupon) body.couponId=parseInt(coupon,10);
+  const sched=$('cp_sched').value; if(sched) body.scheduledAt=new Date(sched).toISOString();
+  try{ await api('/admin/campaigns',{method:'POST',body:JSON.stringify(body)}); VIEWS.campaigns(); }catch(e){ $('cp_out').innerHTML='<span class=err>'+esc(e.message)+'</span>'; } }
+async function sendCampaign(id){ if(!confirm('ยืนยันส่งแคมเปญนี้? ข้อความจะถูกจัดคิวส่งถึงสมาชิกที่ยินยอม'))return; try{ const r=await api('/admin/campaigns/'+id+'/send',{method:'POST'}); alert('จัดคิวส่งแล้ว '+r.queued+' คน · ข้าม '+r.skippedNoConsent+(r.couponsIssued?' · แจกคูปอง '+r.couponsIssued:'')); VIEWS.campaigns(); }catch(e){ alert(e.message); } }
+async function cancelCampaign(id){ if(!confirm('ยกเลิกแคมเปญนี้?'))return; try{ await api('/admin/campaigns/'+id+'/cancel',{method:'POST'}); VIEWS.campaigns(); }catch(e){ alert(e.message); } }
+async function viewCampaign(id){ const d=await api('/admin/campaigns/'+id); const c=d.campaign; const msg=(()=>{try{return JSON.parse(c.message_json).map(m=>m.text||'['+m.type+']').join(' / ');}catch(e){return '';}})();
+  $('camp_detail').innerHTML=`<div class="card"><h3>${esc(c.name)} <span class="pill">${campStatus(c.status)}</span></h3>
+    <div class="muted" style="font-size:13px;margin-bottom:8px">ข้อความ: ${esc(msg)}</div>
+    <table><thead><tr><th>สมาชิก</th><th>สถานะคิว</th><th>ส่งเมื่อ</th></tr></thead><tbody>${
+      d.deliveries.map(x=>`<tr><td>${esc(x.display_name||x.member_code)}</td><td>${x.delivery_status||x.status}</td><td class=muted>${x.sent_at?new Date(x.sent_at).toLocaleString('th-TH'):'-'}</td></tr>`).join('')||'<tr><td colspan=3 class=muted>ยังไม่มีการส่ง</td></tr>'
+    }</tbody></table></div>`;
+}
+
+// ---- Rich Menu designer ----
+let RM_TPL={}, RM_SECTIONS=[], RM_EDIT=null;
+const RM_SECTION_LABEL={home:'หน้าแรก',points:'แต้ม/ประวัติแต้ม',purchases:'ประวัติการซื้อ',coupons:'คูปอง',receipt:'ใบเสร็จ',referral:'แนะนำเพื่อน',profile:'โปรไฟล์'};
+const rmSizePx=(s)=>s==='compact'?[2500,843]:[2500,1686];
+VIEWS.richmenu=async()=>{
+  const t=await api('/admin/richmenu-templates'); RM_TPL={}; t.templates.forEach(x=>RM_TPL[x.id]=x); RM_SECTIONS=t.liffSections;
+  const list=(await api('/admin/richmenus')).richMenus;
+  const canWrite=can('campaigns.write');
+  const tplOptions=Object.entries(RM_TPL).map(([id,x])=>`<option value="${id}">${x.label}</option>`).join('');
+  $('view').innerHTML=`<h2>Rich Menu (เมนูบน LINE)</h2>
+    <div class="banner">ออกแบบเมนูที่แสดงด้านล่างแชท LINE OA — เลือกเลย์เอาต์ ตั้งปุ่มให้ลิงก์ไปหน้า LIFF/ส่งข้อความ อัปโหลดรูป แล้ว <b>เผยแพร่</b> ระบบจะส่งขึ้น LINE ผ่าน provider (โหมด mock ถ้ายังไม่ตั้งค่าจริง)</div>
+    ${canWrite?`<div class="card"><h3 id="rm_formtitle">สร้าง Rich Menu</h3>
+      <div class="row">
+        <div class="field" style="flex:2"><label>ชื่อ (ภายใน)</label><input id="rm_name" placeholder="เช่น เมนูหลัก"/></div>
+        <div class="field"><label>ข้อความบนแถบเมนู (≤14)</label><input id="rm_bar" maxlength="14" placeholder="เมนู"/></div>
+        <div class="field"><label>เลย์เอาต์</label><select id="rm_tpl" onchange="rmRenderButtons()">${tplOptions}</select></div>
+      </div>
+      <div id="rm_buttons"></div>
+      <div class="row" style="margin-top:10px"><button onclick="rmSave()" id="rm_savebtn">บันทึก</button><button class="ghost" onclick="rmResetForm()">ล้างฟอร์ม</button><span id="rm_out" class="muted"></span></div>
+    </div>`:''}
+    <div class="cards">${list.map(r=>rmCard(r,canWrite)).join('')||'<span class="muted">ยังไม่มี Rich Menu</span>'}</div>`;
+  rmRenderButtons();
+};
+function rmCard(r,canWrite){
+  const [w,h]=rmSizePx(r.size); const t=RM_TPL[r.template]||{cols:1,rows:1};
+  const areas=(()=>{try{return JSON.parse(r.areas_json);}catch(e){return [];}})();
+  const btns=(()=>{try{return JSON.parse(r.buttons_json);}catch(e){return [];}})();
+  const grid=`<div style="position:relative;width:100%;max-width:360px;aspect-ratio:${w}/${h};border:1px solid #ddd;border-radius:8px;overflow:hidden;background:#f6f6f6 center/cover">
+    ${r.has_image?`<img src="/api/admin/richmenus/${r.id}/image?t=${Date.now()}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>`:''}
+    <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(${t.cols},1fr);grid-template-rows:repeat(${t.rows},1fr)">
+      ${btns.map(b=>`<div style="border:1px dashed rgba(11,122,65,.5);display:flex;align-items:center;justify-content:center;font-size:11px;color:#0b7a41;background:rgba(255,255,255,.35);text-align:center;padding:2px">${esc(b.label||'')}</div>`).join('')}
+    </div></div>`;
+  return `<div class="card"><div class="row"><h3 style="margin:0">${esc(r.name)}</h3>
+      <span class="pill ${r.status==='published'?'':'warn'}">${r.status==='published'?'เผยแพร่แล้ว':'ร่าง'}</span>${r.is_default?'<span class="pill" style="background:#e6f4ea;color:#0b7a41">ค่าเริ่มต้น</span>':''}</div>
+    <div class="muted" style="font-size:12px;margin:4px 0">${RM_TPL[r.template]?.label||r.template} · แถบเมนู: ${esc(r.chat_bar_text)}</div>
+    ${grid}
+    <div style="font-size:12px;margin-top:8px">${btns.map((b,i)=>`<div class="muted">• ${esc(b.label)} → ${b.actionType==='message'?'ส่งข้อความ: '+esc(b.value):(b.actionType==='liff'?'LIFF: '+(RM_SECTION_LABEL[b.value]||b.value):esc(b.value))}</div>`).join('')}</div>
+    ${canWrite?`<div class="row" style="margin-top:10px;flex-wrap:wrap;gap:6px">
+      <label class="sm ghost" style="cursor:pointer">อัปโหลดรูป<input type="file" accept="image/png,image/jpeg" style="display:none" onchange="rmUpload(${r.id},this)"/></label>
+      <button class="sm" onclick="rmEdit(${r.id})">แก้ไข</button>
+      <button class="sm" onclick="rmPublish(${r.id})" ${r.has_image?'':'disabled title="อัปโหลดรูปก่อน"'}>เผยแพร่</button>
+      ${r.status==='published'?`<button class="sm ghost" onclick="rmSetDefault(${r.id})">ตั้งเป็นค่าเริ่มต้น</button>`:''}
+      <button class="sm" style="background:#b3261e" onclick="rmDelete(${r.id})">ลบ</button>
+    </div>`:''}
+    ${r.size?`<div class="muted" style="font-size:11px;margin-top:6px">ขนาดรูปที่ต้องใช้: ${w}×${h}px (${r.size==='compact'?'เตี้ย':'เต็ม'})</div>`:''}
+  </div>`;
+}
+function rmRenderButtons(){
+  const tpl=RM_TPL[$('rm_tpl').value]; if(!tpl){ $('rm_buttons').innerHTML=''; return; }
+  const cur=RM_EDIT&&RM_EDIT.template===$('rm_tpl').value?RM_EDIT.buttons:[];
+  const secOpts=RM_SECTIONS.map(s=>`<option value="${s}">${RM_SECTION_LABEL[s]||s}</option>`).join('');
+  let html=`<div class="muted" style="font-size:12px;margin:6px 0">ปุ่ม ${tpl.cells} ปุ่ม (${tpl.label})</div>`;
+  for(let i=0;i<tpl.cells;i++){ const b=cur[i]||{label:'',actionType:'liff',value:'points'};
+    html+=`<div class="row" style="align-items:flex-end;gap:8px;margin-bottom:6px">
+      <div class="field"><label>ปุ่ม ${i+1} · ชื่อ</label><input class="rm_lbl" value="${esc(b.label||'')}" placeholder="ชื่อปุ่ม"/></div>
+      <div class="field"><label>ประเภท</label><select class="rm_at" onchange="rmAtChange(${i})">
+        <option value="liff" ${b.actionType==='liff'?'selected':''}>ลิงก์ LIFF</option>
+        <option value="uri" ${b.actionType==='uri'?'selected':''}>ลิงก์ URL</option>
+        <option value="message" ${b.actionType==='message'?'selected':''}>ส่งข้อความ</option></select></div>
+      <div class="field" style="flex:2" id="rm_valwrap_${i}">${b.actionType==='liff'
+        ?`<label>หน้า LIFF</label><select class="rm_val">${secOpts}</select>`
+        :`<label>${b.actionType==='message'?'ข้อความ':'URL (https://)'}</label><input class="rm_val" value="${esc(b.value||'')}"/>`}</div>
+    </div>`;
+  }
+  $('rm_buttons').innerHTML=html;
+  // set selected values for liff selects
+  document.querySelectorAll('.rm_val').forEach((el,i)=>{ if(el.tagName==='SELECT'&&cur[i]) el.value=cur[i].value; });
+}
+function rmAtChange(i){ const at=document.querySelectorAll('.rm_at')[i].value; const wrap=$('rm_valwrap_'+i);
+  if(at==='liff'){ wrap.innerHTML='<label>หน้า LIFF</label><select class="rm_val">'+RM_SECTIONS.map(s=>`<option value="${s}">${RM_SECTION_LABEL[s]||s}</option>`).join('')+'</select>'; }
+  else { wrap.innerHTML=`<label>${at==='message'?'ข้อความ':'URL (https://)'}</label><input class="rm_val"/>`; } }
+function rmCollect(){ const lbls=document.querySelectorAll('.rm_lbl'), ats=document.querySelectorAll('.rm_at'), vals=document.querySelectorAll('.rm_val');
+  const out=[]; for(let i=0;i<lbls.length;i++){ out.push({label:lbls[i].value.trim(),actionType:ats[i].value,value:vals[i].value.trim()}); } return out; }
+async function rmSave(){ const name=$('rm_name').value.trim(); if(!name){ $('rm_out').innerHTML='<span class=err>ใส่ชื่อ</span>'; return; }
+  const body={name,chatBarText:$('rm_bar').value.trim()||'เมนู',template:$('rm_tpl').value,buttons:rmCollect()};
+  try{ if(RM_EDIT){ await api('/admin/richmenus/'+RM_EDIT.id,{method:'PATCH',body:JSON.stringify(body)}); } else { await api('/admin/richmenus',{method:'POST',body:JSON.stringify(body)}); } rmResetForm(); VIEWS.richmenu(); }
+  catch(e){ $('rm_out').innerHTML='<span class=err>'+esc(e.message)+'</span>'; } }
+function rmResetForm(){ RM_EDIT=null; if($('rm_name')){ $('rm_name').value=''; $('rm_bar').value=''; $('rm_formtitle').textContent='สร้าง Rich Menu'; $('rm_savebtn').textContent='บันทึก'; rmRenderButtons(); } }
+async function rmEdit(id){ const r=(await api('/admin/richmenus/'+id)).richMenu; RM_EDIT={id,template:r.template,buttons:JSON.parse(r.buttons_json)};
+  $('rm_name').value=r.name; $('rm_bar').value=r.chat_bar_text; $('rm_tpl').value=r.template; $('rm_formtitle').textContent='แก้ไข: '+r.name; $('rm_savebtn').textContent='อัปเดต'; rmRenderButtons(); window.scrollTo(0,0); }
+function rmUpload(id,input){ const f=input.files[0]; if(!f)return; const rd=new FileReader();
+  rd.onload=async()=>{ try{ await api('/admin/richmenus/'+id+'/image',{method:'POST',body:JSON.stringify({imageDataUrl:rd.result})}); VIEWS.richmenu(); }catch(e){ alert(e.message); } }; rd.readAsDataURL(f); }
+async function rmPublish(id){ if(!confirm('เผยแพร่ Rich Menu นี้ขึ้น LINE?'))return; try{ await api('/admin/richmenus/'+id+'/publish',{method:'POST'}); VIEWS.richmenu(); }catch(e){ alert(e.message); } }
+async function rmSetDefault(id){ try{ await api('/admin/richmenus/'+id+'/set-default',{method:'POST'}); VIEWS.richmenu(); }catch(e){ alert(e.message); } }
+async function rmDelete(id){ if(!confirm('ลบ Rich Menu นี้? (จะลบออกจาก LINE ด้วยถ้าเผยแพร่แล้ว)'))return; try{ await api('/admin/richmenus/'+id,{method:'DELETE'}); VIEWS.richmenu(); }catch(e){ alert(e.message); } }
+
+// ---- Store settings hub ----
+VIEWS.store=()=>{
+  const tiles=[
+    {id:'branches',ico:'🏬',title:'สาขา',desc:'เพิ่ม/แก้ไขสาขา และดูรายสาขา',show:can('branches.manage')||can('reports.read')},
+    {id:'points_settings',ico:'⭐',title:'พอยท์',desc:'อัตราแลกพอยท์ และวันหมดอายุ',show:can('settings.manage')},
+    {id:'tiers',ico:'🏆',title:'ระดับสมาชิก',desc:'ตั้งระดับ เกณฑ์พอยท์ ส่วนลด และตัวคูณแต้ม',show:can('settings.manage')},
+    {id:'users',ico:'🔐',title:'พนักงาน / สิทธิ์',desc:'ผู้ใช้ บทบาท และสาขาที่เข้าถึง',show:can('users.manage')},
+    {id:'coupons',ico:'🎁',title:'ของรางวัล / คูปอง',desc:'สร้างและจัดการคูปอง',show:can('coupons.read')},
+    {id:'settings',ico:'⚙️',title:'ตั้งค่าธุรกิจ',desc:'กฎธุรกิจทั้งหมด (earn, coupon, referral, consent)',show:can('settings.manage')},
+    {id:'store_info',ico:'🧾',title:'บัญชีร้านค้า',desc:'ชื่อร้าน ช่องทางติดต่อ',show:can('settings.manage')},
+    {id:'store_info',ico:'🖼️',title:'โลโก้ร้าน',desc:'โลโก้แสดงบนหน้าสมาชิก',show:can('settings.manage')},
+    {id:'tags',ico:'🏷️',title:'แท็กสมาชิก',desc:'จัดกลุ่มสมาชิกด้วยแท็ก',show:can('members.read')},
+    {id:'theme',ico:'🎨',title:'ธีม',desc:'สีหลัก/สีรองของหน้าสมาชิก',show:can('settings.manage')},
+    {id:'signup',ico:'📝',title:'หน้าสมัครสมาชิก',desc:'กำหนดฟิลด์ที่เก็บตอนสมัคร',show:can('settings.manage')},
+    {id:'pos',ico:'🖥️',title:'เชื่อมต่อ POS',desc:'สร้างคีย์ให้ POS ยิงบิลเข้าระบบ',show:can('settings.manage')},
+  ];
+  $('view').innerHTML='<h2>ตั้งค่าร้านค้า</h2><div class="tiles">'+tiles.filter(t=>t.soon||t.show).map(t=>
+    t.soon
+    ?`<div class="tile soon"><div class="ico">${t.ico}</div><div><h4>${t.title}</h4><p>${t.desc}</p><span class="soonbadge">เร็ว ๆ นี้</span></div></div>`
+    :`<div class="tile" onclick="go('${t.id}')"><div class="ico">${t.ico}</div><div><h4>${t.title}</h4><p>${t.desc}</p></div></div>`
+  ).join('')+'</div>';
+};
+const storeCrumb=(name)=>`<div class="crumb"><a onclick="go('store')">ตั้งค่าร้านค้า</a> / ${name}</div>`;
+
+// ---- Branches ----
+VIEWS.branches=async()=>{
+  const bs=(await api('/admin/branches')).branches;
+  const editable=can('branches.manage');
+  $('view').innerHTML=storeCrumb('สาขา')+`<h2>สาขา</h2>
+    ${editable?`<div class="card"><h3>เพิ่ม / แก้ไขสาขา</h3><div class="row">
+      <div class="field"><label>รหัส (slug)</label><input id="b_id" placeholder="เช่น hq-sanpaliang"/></div>
+      <div class="field"><label>ชื่อสาขา</label><input id="b_name"/></div>
+      <label style="font-size:13px;color:var(--ink)"><input type="checkbox" id="b_hq"/> สำนักงานใหญ่</label>
+      <button onclick="saveBranch()">บันทึก</button></div><div id="b_out" class="muted" style="margin-top:6px"></div>
+      <p class="muted" style="font-size:12px;margin-top:6px">ใส่รหัสเดิมเพื่อแก้ชื่อ • รหัส (slug) ไม่ควรเปลี่ยนหลังสร้าง</p></div>`:''}
+    <table><thead><tr><th>รหัส</th><th>ชื่อ</th><th>HQ</th><th>สถานะ</th>${editable?'<th></th>':''}</tr></thead><tbody>${
+      bs.map(b=>`<tr><td><code>${b.id}</code></td><td>${esc(b.name)}</td><td>${b.is_hq?'✓':''}</td><td>${b.is_active?'active':'ปิด'}</td>${editable?`<td><button class="sm ghost" onclick="editBranch('${b.id}',this)">แก้</button></td>`:''}</tr>`).join('')
+    }</tbody></table>`;
+};
+function editBranch(id,btn){ const tr=btn.closest('tr'); $('b_id').value=id; $('b_name').value=tr.children[1].innerText; $('b_hq').checked=tr.children[2].innerText.trim()==='✓'; }
+async function saveBranch(){ try{ await api('/admin/branches',{method:'POST',body:JSON.stringify({id:$('b_id').value.trim(),name:$('b_name').value.trim(),isHq:$('b_hq').checked})}); BRANCHES=(await api('/admin/branches')).branches; VIEWS.branches(); }catch(e){ $('b_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; } }
+
+// ---- Points settings ----
+VIEWS.points_settings=async()=>{
+  const c=await api('/admin/settings/loyalty');
+  $('view').innerHTML=storeCrumb('พอยท์')+`<h2>ตั้งค่าพอยท์</h2>
+    <div class="card"><div class="row">
+      <div class="field"><label>ใช้จ่ายกี่บาท = 1 พอยท์</label><input id="pt_earn" type="number" value="${c.earnBahtPerPoint}"/></div>
+      <div class="field"><label>1 พอยท์ = กี่บาท (ตอนแลก)</label><input id="pt_redeem" type="number" value="${c.redeemBahtPerPoint}"/></div>
+      <div class="field"><label>อายุพอยท์ (วัน)</label><input id="pt_exp" type="number" value="${c.expiryDays}"/></div>
+      <button class="brand" onclick="savePoints()">บันทึก</button></div>
+      <div style="margin-top:10px">${c.rulesApproved?'<span class="ok">✓ ยืนยันกติกาพอยท์แล้ว</span>':'<span class="pill warn">รอยืนยันกติกา</span> &nbsp;<label style="font-size:13px;color:var(--ink)"><input type="checkbox" id="pt_appr"/> ยืนยันกติกาพอยท์ (เจ้าของร้าน)</label>'}</div>
+      <div id="pt_out" class="muted" style="margin-top:6px"></div></div>`;
+};
+async function savePoints(){ try{ const body={earnBahtPerPoint:parseInt($('pt_earn').value,10),redeemBahtPerPoint:parseInt($('pt_redeem').value,10),expiryDays:parseInt($('pt_exp').value,10)}; const ap=$('pt_appr'); if(ap&&ap.checked)body.rulesApproved=true; await api('/admin/settings/loyalty',{method:'PATCH',body:JSON.stringify(body)}); $('pt_out').innerHTML='<span class="ok">บันทึกแล้ว</span>'; VIEWS.points_settings(); }catch(e){ $('pt_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; } }
+
+// ---- Store info & logo ----
+VIEWS.store_info=async()=>{
+  const s=await api('/admin/store');
+  $('view').innerHTML=storeCrumb('บัญชีร้านค้า')+`<h2>บัญชีร้านค้า & โลโก้</h2>
+    <div class="card"><div class="grid" style="gap:8px">
+      <div class="field"><label>ชื่อร้าน</label><input id="s_name" value="${esc(s.name)}"/></div>
+      <div class="field"><label>เบอร์ติดต่อ</label><input id="s_phone" value="${esc(s.phone)}"/></div>
+      <div class="field"><label>ที่อยู่</label><input id="s_addr" value="${esc(s.address)}"/></div>
+      <button class="brand" style="width:auto" onclick="saveStore()">บันทึกข้อมูล</button><div id="s_out" class="muted"></div>
+    </div></div>
+    <div class="card"><h3>โลโก้ร้าน</h3><div class="row" style="align-items:center">
+      <img id="s_logo" src="${s.hasLogo?('/api/store/logo?t='+Date.now()):''}" alt="" style="height:64px;border:1px solid var(--line);border-radius:8px;${s.hasLogo?'':'display:none'}"/>
+      <div class="field"><label>อัปโหลดโลโก้ (PNG/JPG ไฟล์เล็ก)</label><input id="s_file" type="file" accept="image/*"/></div>
+      <button class="ghost" onclick="uploadLogo()">อัปโหลด</button>
+      ${s.hasLogo?'<button class="ghost" onclick="clearLogo()">ลบโลโก้</button>':''}
+    </div><div id="s_logo_out" class="muted" style="margin-top:6px"></div></div>`;
+};
+async function saveStore(){ try{ await api('/admin/store',{method:'PATCH',body:JSON.stringify({name:$('s_name').value,phone:$('s_phone').value,address:$('s_addr').value})}); $('s_out').innerHTML='<span class="ok">บันทึกแล้ว</span>'; }catch(e){ $('s_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; } }
+function uploadLogo(){ const f=$('s_file').files[0]; if(!f)return; if(f.size>2000000){ $('s_logo_out').innerHTML='<span class="err">ไฟล์ใหญ่เกิน 2MB</span>'; return; } const rd=new FileReader(); rd.onload=async()=>{ try{ await api('/admin/store',{method:'PATCH',body:JSON.stringify({logoDataUrl:rd.result})}); VIEWS.store_info(); }catch(e){ $('s_logo_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; } }; rd.readAsDataURL(f); }
+async function clearLogo(){ try{ await api('/admin/store',{method:'PATCH',body:JSON.stringify({logoDataUrl:null})}); VIEWS.store_info(); }catch(e){ alert(e.message); } }
+
+// ---- Member tags ----
+VIEWS.tags=async()=>{
+  const tags=(await api('/admin/tags')).tags; const editable=can('members.write');
+  $('view').innerHTML=storeCrumb('แท็กสมาชิก')+`<h2>แท็กสมาชิก</h2>
+    <div class="banner">ใช้จัดกลุ่มลูกค้า (เช่น “ขาประจำ”, “ชอบทุเรียน”) — เพิ่มแท็กให้สมาชิกได้ที่หน้ารายละเอียดสมาชิก</div>
+    ${editable?`<div class="card"><div class="row"><div class="field"><label>ชื่อแท็ก</label><input id="tg_name"/></div><div class="field"><label>สี</label><input id="tg_color" type="color" value="#0f9d58"/></div><button onclick="createTagUI()">เพิ่มแท็ก</button><span id="tg_out" class="muted"></span></div></div>`:''}
+    <table><thead><tr><th>แท็ก</th><th>จำนวนสมาชิก</th>${editable?'<th></th>':''}</tr></thead><tbody>${
+      tags.map(t=>`<tr><td><span class="pill" style="background:${t.color||'#0f9d58'};color:#fff">${esc(t.name)}</span></td><td>${t.member_count}</td>${editable?`<td><button class="sm ghost" onclick="delTagUI(${t.id})">ลบ</button></td>`:''}</tr>`).join('')||'<tr><td colspan=3 class=muted>ยังไม่มีแท็ก</td></tr>'
+    }</tbody></table>`;
+};
+async function refreshTags(){ try{ TAGS=(await api('/admin/tags')).tags; }catch(e){ TAGS=[]; } }
+async function createTagUI(){ try{ await api('/admin/tags',{method:'POST',body:JSON.stringify({name:$('tg_name').value,color:$('tg_color').value})}); await refreshTags(); VIEWS.tags(); }catch(e){ $('tg_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; } }
+async function delTagUI(id){ if(!confirm('ลบแท็กนี้? (สมาชิกที่ติดแท็กจะถูกถอดออก)'))return; try{ await api('/admin/tags/'+id,{method:'DELETE'}); await refreshTags(); VIEWS.tags(); }catch(e){ alert(e.message); } }
+
+// ---- Theme ----
+VIEWS.theme=async()=>{
+  const t=await api('/admin/theme');
+  $('view').innerHTML=storeCrumb('ธีม')+`<h2>ธีมหน้าสมาชิก (LIFF)</h2>
+    <div class="banner">สีนี้ใช้กับหน้าสมาชิก (LIFF) — ค่าเริ่มต้นเป็นเขียวของร้าน</div>
+    <div class="card"><div class="row">
+      <div class="field"><label>สีหลัก</label><input id="th_p" type="color" value="${t.primary}"/></div>
+      <div class="field"><label>สีรอง</label><input id="th_a" type="color" value="${t.accent}"/></div>
+      <button class="brand" onclick="saveTheme()">บันทึก</button></div>
+      <div style="margin-top:12px;padding:18px;border-radius:12px;color:#fff;font-weight:700;background:linear-gradient(135deg,${t.primary},${t.accent})">ตัวอย่างหัวหน้าสมาชิก 🍉</div>
+      <div id="th_out" class="muted" style="margin-top:6px"></div></div>`;
+};
+async function saveTheme(){ try{ await api('/admin/theme',{method:'PATCH',body:JSON.stringify({primary:$('th_p').value,accent:$('th_a').value})}); VIEWS.theme(); }catch(e){ $('th_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; } }
+
+// ---- Signup form fields ----
+VIEWS.signup=async()=>{ window.__SF=(await api('/admin/signup-fields')).fields.map(f=>({...f})); renderSignup(); };
+function renderSignup(){
+  const rows=window.__SF.map((f,i)=>`<tr>
+    <td><input value="${esc(f.label)}" oninput="window.__SF[${i}].label=this.value"/></td>
+    <td><code>${esc(f.key)}</code>${f.builtin?' <span class="pill">builtin</span>':''}</td>
+    <td>${f.builtin?f.type:`<select onchange="window.__SF[${i}].type=this.value">${['text','date','phone','select'].map(t=>`<option ${t===f.type?'selected':''}>${t}</option>`).join('')}</select>`}</td>
+    <td style="text-align:center"><input type="checkbox" ${f.required?'checked':''} onchange="window.__SF[${i}].required=this.checked"/></td>
+    <td>${f.builtin?'':`<button class="sm ghost" onclick="window.__SF.splice(${i},1);renderSignup()">ลบ</button>`}</td></tr>`).join('');
+  $('view').innerHTML=storeCrumb('หน้าสมัครสมาชิก')+`<h2>หน้าสมัครสมาชิก</h2>
+    <div class="banner">กำหนดฟิลด์ที่ถามตอนสมัคร • builtin (ชื่อ/วันเกิด/เบอร์) เก็บในข้อมูลหลัก, ฟิลด์ที่เพิ่มเองเก็บเป็นข้อมูลเสริม</div>
+    <table><thead><tr><th>ป้ายที่แสดง</th><th>key</th><th>ชนิด</th><th>บังคับ</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="row" style="margin-top:10px"><button class="ghost" onclick="addSignupField()">+ เพิ่มฟิลด์</button><button class="brand" onclick="saveSignup()">บันทึก</button><span id="sf_out" class="muted"></span></div>`;
+}
+function addSignupField(){ const key=prompt('key ฟิลด์ใหม่ (a-z0-9_) เช่น favorite_fruit'); if(!key)return; const clean=key.trim().toLowerCase().replace(/[^a-z0-9_]/g,''); if(!clean)return; window.__SF.push({key:clean,label:clean,type:'text',required:false,builtin:false}); renderSignup(); }
+async function saveSignup(){ try{ await api('/admin/signup-fields',{method:'PATCH',body:JSON.stringify({fields:window.__SF})}); $('sf_out').innerHTML='<span class="ok">บันทึกแล้ว</span>'; VIEWS.signup(); }catch(e){ $('sf_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; } }
+
+// ---- POS connect ----
+VIEWS.pos=async()=>{
+  const keys=(await api('/admin/pos-keys')).keys;
+  const nk=window.__newPosKey; window.__newPosKey=null;
+  const branchOpts=BRANCHES.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  $('view').innerHTML=storeCrumb('เชื่อมต่อ POS')+`<h2>เชื่อมต่อ POS</h2>
+    <div class="banner">สร้างคีย์ให้เครื่อง POS ยิงบิลเข้าระบบ (ผูกกับสาขา) • คีย์แสดงครั้งเดียวตอนสร้าง เก็บให้ดี</div>
+    <div class="card"><div class="row">
+      <div class="field"><label>ชื่อคีย์ (เช่น เครื่อง 1)</label><input id="pk_label"/></div>
+      <div class="field"><label>สาขา</label><select id="pk_branch">${branchOpts}</select></div>
+      <button class="brand" onclick="genPosKey()">สร้างคีย์</button></div>
+      ${nk?`<div class="card" style="background:#eefaf2;margin-top:10px">คีย์ใหม่ (แสดงครั้งเดียว): <code style="font-size:14px;user-select:all">${esc(nk)}</code></div>`:''}
+      <div id="pk_out" class="muted"></div></div>
+    <table><thead><tr><th>ชื่อ</th><th>สาขา</th><th>คีย์</th><th>สถานะ</th><th></th></tr></thead><tbody>${
+      keys.map(k=>`<tr><td>${esc(k.label)}</td><td>${esc(branchName(k.branch_id))}</td><td><code>${esc(k.key_prefix)}…</code></td><td>${k.active?'active':'ยกเลิกแล้ว'}</td><td>${k.active?`<button class="sm ghost" onclick="revokePosKey(${k.id})">ยกเลิก</button>`:''}</td></tr>`).join('')||'<tr><td colspan=5 class=muted>ยังไม่มีคีย์</td></tr>'
+    }</tbody></table>
+    <div class="card" style="margin-top:14px"><h3>วิธีให้ POS ยิงบิล</h3>
+      <p class="muted" style="font-size:13px">POST <code>${location.origin}/api/pos/transactions</code> พร้อม header <code>X-POS-Key: &lt;คีย์&gt;</code> (grossAmount เป็นสตางค์)</p>
+      <pre style="background:#f4f7f5;padding:10px;border-radius:8px;overflow:auto;font-size:12px">curl -X POST ${location.origin}/api/pos/transactions \\
+  -H "X-POS-Key: pos_xxxxx" -H "content-type: application/json" -H "idempotency-key: bill-123" \\
+  -d '{"memberId":1,"grossAmount":15000}'</pre></div>`;
+};
+async function genPosKey(){ try{ const r=await api('/admin/pos-keys',{method:'POST',body:JSON.stringify({label:$('pk_label').value,branchId:$('pk_branch').value})}); window.__newPosKey=r.key; VIEWS.pos(); }catch(e){ $('pk_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; } }
+async function revokePosKey(id){ if(!confirm('ยกเลิกคีย์นี้?'))return; try{ await api('/admin/pos-keys/'+id,{method:'DELETE'}); VIEWS.pos(); }catch(e){ alert(e.message); } }
+
+// ---- Membership tiers ----
+VIEWS.tiers=async()=>{
+  $('view').innerHTML=storeCrumb('ระดับสมาชิก')+'<h2>ระดับสมาชิก</h2><div class="banner">เลื่อนอัตโนมัติตาม “พอยท์เริ่มต้น” (พอยท์สะสม) และตั้งราคาให้จ่ายเงินอัปเกรดได้ (0 = ไม่ให้ซื้อ) • เปลี่ยนชื่อ/สิทธิ์ได้ • ส่วนลด % และตัวคูณแต้ม x</div><div id="tiers"></div><button class="ghost" style="margin-top:10px" onclick="addTierRow()">+ เพิ่มระดับ</button> <span id="tier_out" class="muted"></span>';
+  await refreshTiers(); renderTiers();
+};
+async function refreshTiers(){ TIERS=(await api('/admin/tiers')).tiers; }
+function tierRow(t){
+  const disc=(t.discount_bps/100), mult=(t.earn_multiplier_bps/10000), price=(t.price_satang/100);
+  const k=t.code.replace(/\W/g,'_');
+  return `<tr>
+    <td><input id="t_name_${k}" value="${esc(t.name)}" style="width:130px"/><br><span class="muted" style="font-size:11px">code: ${t.code}</span></td>
+    <td><input id="t_level_${k}" type="number" value="${t.level}" style="width:55px"/></td>
+    <td><input id="t_min_${k}" type="number" value="${t.min_points}" style="width:80px"/></td>
+    <td><input id="t_disc_${k}" type="number" step="0.5" value="${disc}" style="width:65px"/>%</td>
+    <td><input id="t_mult_${k}" type="number" step="0.1" value="${mult}" style="width:60px"/>x</td>
+    <td>฿<input id="t_price_${k}" type="number" value="${price}" style="width:70px"/></td>
+    <td><input id="t_bonus_${k}" type="number" value="${t.upgrade_bonus_points}" style="width:60px"/></td>
+    <td style="text-align:center"><input id="t_def_${k}" type="checkbox" ${t.is_default?'checked':''}/></td>
+    <td><button class="sm" onclick="saveTier('${t.code}')">บันทึก</button> ${t.is_default?'':`<button class="sm ghost" onclick="delTier('${t.code}')">✕</button>`}</td>
+  </tr>`;
+}
+function renderTiers(){
+  $('tiers').innerHTML=`<table><thead><tr><th>ชื่อระดับ</th><th>Level</th><th>พอยท์เริ่มต้น</th><th>ส่วนลด</th><th>ตัวคูณแต้ม</th><th>ราคาอัปเกรด</th><th>โบนัส</th><th>ค่าเริ่มต้น</th><th></th></tr></thead><tbody>${TIERS.map(tierRow).join('')}</tbody></table>`;
+}
+function readTier(code){ const k=code.replace(/\W/g,'_'); return {
+  code, name:$('t_name_'+k).value, level:parseInt($('t_level_'+k).value,10),
+  minPoints:parseInt($('t_min_'+k).value,10), discountBps:Math.round(parseFloat($('t_disc_'+k).value)*100),
+  earnMultiplierBps:Math.round(parseFloat($('t_mult_'+k).value)*10000), priceSatang:Math.round(parseFloat($('t_price_'+k).value)*100),
+  upgradeBonusPoints:parseInt($('t_bonus_'+k).value,10), isDefault:$('t_def_'+k).checked };
+}
+async function saveTier(code){ try{ await api('/admin/tiers',{method:'POST',body:JSON.stringify(readTier(code))}); await refreshTiers(); renderTiers(); $('tier_out').innerHTML='<span class="ok">บันทึกแล้ว</span>'; }catch(e){ $('tier_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; } }
+async function delTier(code){ if(!confirm('ลบระดับ '+code+'?'))return; try{ await api('/admin/tiers/'+code,{method:'DELETE'}); await refreshTiers(); renderTiers(); }catch(e){ $('tier_out').innerHTML='<span class="err">'+esc(e.message)+'</span>'; } }
+function addTierRow(){
+  const code=prompt('รหัสระดับใหม่ (a-z, ไม่มีเว้นวรรค) เช่น diamond'); if(!code)return;
+  const clean=code.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+  if(!clean)return;
+  TIERS.push({code:clean,name:clean,level:(Math.max(0,...TIERS.map(t=>t.level))+1),min_points:0,discount_bps:0,earn_multiplier_bps:10000,price_satang:0,upgrade_bonus_points:0,is_default:0});
+  renderTiers();
+}
+
+// ---- Settings ----
+let POLICY_TYPES={};
+VIEWS.settings=async()=>{
+  $('view').innerHTML=storeCrumb('ตั้งค่าธุรกิจ')+'<h2>ตั้งค่าธุรกิจ (Business rules)</h2><div class="banner">ป้าย “รอยืนยัน” = กฎธุรกิจสำคัญ (ปรับได้ปกติ ไม่ได้ล็อกการเซฟ). แก้ค่าที่ต้องการ แล้วกดปุ่ม <b>“บันทึกการตั้งค่า”</b> ด้านล่าง — ปุ่มเดียวเซฟทั้งหน้า มีผลทันที ไม่ต้อง deploy</div><div id="s"></div>'
+    +'<div style="position:sticky;bottom:0;margin-top:14px;padding:12px 4px;background:#ffffff;border-top:2px solid #0f9d58;display:flex;gap:12px;align-items:center;z-index:5"><button class="brand" onclick="saveSettings()">💾 บันทึกการตั้งค่า</button> <span id="s_out" class="muted"></span></div>';
+  const g=(await api('/admin/settings')).policies; POLICY_TYPES={};
+  const cn={loyalty:'แต้ม',coupon:'คูปอง',tiers:'ระดับสมาชิก',referral:'แนะนำเพื่อน',pdpa:'ความยินยอม (PDPA)',receipts:'ใบเสร็จ'};
+  let html='';
+  for(const [cat,items] of Object.entries(g)){
+    html+=`<div class="card"><h3>${cn[cat]||cat}</h3>`;
+    for(const p of items){ POLICY_TYPES[p.key]=p.type; const id='s_'+p.key.replace(/\W/g,'_'); let input;
+      if(p.type==='bool')input=`<select id="${id}"><option value="true" ${p.value?'selected':''}>เปิด</option><option value="false" ${!p.value?'selected':''}>ปิด</option></select>`;
+      else if(p.type==='enum')input=`<select id="${id}">${p.enumValues.map(v=>`<option ${v===p.value?'selected':''}>${v}</option>`).join('')}</select>`;
+      else if(p.type==='json')input=`<input id="${id}" style="width:300px" value='${esc(JSON.stringify(p.value))}'/>`;
+      else input=`<input id="${id}" type="${p.type==='int'?'number':'text'}" value="${esc(p.value)}"/>`;
+      const badge=p.requiresApproval?(p.approved?' <span class="pill" style="background:#e6f4ea;color:#0b7a41">✓ ยืนยันแล้ว</span>':' <span class="pill warn">รอยืนยัน</span>'):'';
+      const apprBox=p.requiresApproval?`<label style="font-size:12px;color:var(--ink);display:block;margin-top:4px"><input type="checkbox" class="appr" data-key="${esc(p.key)}" ${p.approved?'checked':''}/> ยืนยันค่านี้แล้ว (เจ้าของร้าน)</label>`:'';
+      html+=`<div class="row" style="margin-bottom:8px;align-items:center"><div style="min-width:250px"><code>${p.key}</code>${badge}<br><span class="muted" style="font-size:12px">${esc(p.description)}</span>${apprBox}</div>${input}</div>`;
+    }
+    html+='</div>';
+  }
+  $('s').innerHTML=html;
+};
+async function saveSettings(){
+  const updates={};
+  for(const [k,t] of Object.entries(POLICY_TYPES)){ const e=$('s_'+k.replace(/\W/g,'_')); if(!e)continue; let v=e.value;
+    if(t==='bool')v=(v==='true'); else if(t==='int')v=parseInt(v,10); else if(t==='json'){try{v=JSON.parse(v);}catch(x){$('s_out').innerHTML='<span class=err>JSON ผิดที่ '+k+'</span>';return;}} updates[k]=v; }
+  const approvals={}; document.querySelectorAll('.appr').forEach(el=>{ approvals[el.dataset.key]=el.checked; });
+  try{ await api('/admin/settings',{method:'PATCH',body:JSON.stringify({updates,approvals})}); $('s_out').innerHTML='<span class=ok>บันทึกแล้ว — มีผลทันที</span>'; VIEWS.settings(); }
+  catch(e){ $('s_out').innerHTML='<span class=err>'+esc(e.message)+'</span>'; }
+}
+
+// ---- Users ----
+VIEWS.users=async()=>{
+  const users=(await api('/admin/users')).users; const rolesData=(await api('/auth/roles')).roles;
+  $('view').innerHTML=storeCrumb('พนักงาน / สิทธิ์')+`<h2>ผู้ใช้ & สิทธิ์ (RBAC)</h2>
+    <div class="card"><h3>สร้างผู้ใช้</h3><div class="row">
+      <div class="field"><label>username</label><input id="u_name"/></div>
+      <div class="field"><label>password (≥8)</label><input id="u_pass" type="text"/></div>
+      <div class="field"><label>ชื่อเต็ม</label><input id="u_full"/></div></div>
+      <div style="margin-top:10px"><label>บทบาท</label><div id="u_roles" class="row">${rolesData.map(r=>`<label style="font-size:13px;color:var(--ink)"><input type="checkbox" value="${r.name}"> ${r.name}</label>`).join('')}</div></div>
+      <div style="margin-top:10px"><label>สาขาที่เข้าถึง (cashier/branch_manager)</label><div id="u_branches" class="row">${BRANCHES.map(b=>`<label style="font-size:13px;color:var(--ink)"><input type="checkbox" value="${b.id}"> ${esc(b.name)}</label>`).join('')}</div></div>
+      <button class="brand" style="margin-top:12px" onclick="createUser()">สร้าง</button> <span id="u_out" class="muted"></span></div>
+    <table><thead><tr><th>ID</th><th>username</th><th>ชื่อ</th><th>บทบาท</th><th>สาขา</th><th>สถานะ</th></tr></thead><tbody>${
+      users.map(u=>`<tr><td>${u.id}</td><td>${esc(u.username)}</td><td>${esc(u.full_name||'')}</td><td>${u.roles.map(r=>`<span class=pill>${r}</span>`).join(' ')}</td><td>${u.branchIds.join(', ')||'ทุกสาขา*'}</td><td>${u.status}</td></tr>`).join('')
+    }</tbody></table>
+    <p class="muted" style="font-size:12px">* บทบาทที่เข้าถึงทุกสาขา (super_admin, operations, marketing, auditor) ไม่ต้องกำหนดสาขา</p>
+    <div class="card"><h3>Role matrix</h3><table><thead><tr><th>บทบาท</th><th>ทุกสาขา</th><th>สิทธิ์</th></tr></thead><tbody>${rolesData.map(r=>`<tr><td><b>${r.name}</b></td><td>${r.allBranches?'✓':'—'}</td><td class=muted style="font-size:12px">${r.permissions.join(', ')}</td></tr>`).join('')}</tbody></table></div>`;
+};
+async function createUser(){
+  const roles=[...document.querySelectorAll('#u_roles input:checked')].map(x=>x.value);
+  const branchIds=[...document.querySelectorAll('#u_branches input:checked')].map(x=>x.value);
+  try{ await api('/admin/users',{method:'POST',body:JSON.stringify({username:$('u_name').value,password:$('u_pass').value,fullName:$('u_full').value,roles,branchIds})}); VIEWS.users(); }
+  catch(e){ $('u_out').innerHTML='<span class=err>'+esc(e.message)+'</span>'; }
+}
+
+// ---- Audit ----
+VIEWS.audit=async()=>{
+  const e=(await api('/admin/audit?limit=100')).entries;
+  $('view').innerHTML=`<h2>Audit log</h2><table><thead><tr><th>เมื่อ</th><th>ผู้กระทำ</th><th>action</th><th>target</th><th>สาขา</th><th>ผล</th></tr></thead><tbody>${
+    e.map(x=>`<tr><td class=muted>${new Date(x.created_at).toLocaleString('th-TH')}</td><td>${esc(x.actor_username||'-')}</td><td><code>${x.action}</code></td><td>${x.target_type||''} ${x.target_id||''}</td><td>${x.branch_id||''}</td><td>${x.outcome==='denied'?'<span class="pill warn">denied</span>':x.outcome}</td></tr>`).join('')||'<tr><td colspan=6 class=muted>—</td></tr>'
+  }</tbody></table>`;
+};
+
+// init
+if(TOKEN) boot().catch(()=>logoutLocal()); else logoutLocal();
+</script>
+</body>
+</html>

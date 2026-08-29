@@ -1,0 +1,37 @@
+services:
+  crm:
+    build: .
+    image: fruit-addicts-crm:latest
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DB_FILE: /app/data/crm.db
+    volumes:
+      - crm-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Background worker: point expiry + LINE outbox dispatch. Shares the same DB
+  # volume as the web service (SQLite WAL coordinates the two processes).
+  worker:
+    build: .
+    image: fruit-addicts-crm:latest
+    command: ["node", "src/worker.ts"]
+    env_file:
+      - .env
+    environment:
+      DB_FILE: /app/data/crm.db
+    volumes:
+      - crm-data:/app/data
+    restart: unless-stopped
+    depends_on:
+      - crm
+
+volumes:
+  crm-data:

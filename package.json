@@ -1,0 +1,27 @@
+{
+  "name": "fruit-addicts-crm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Fruit Addicts Customer-360 CRM + Loyalty backend (LINE OA / LIFF -> CRM API -> SQLite, Postgres-ready).",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "migrate": "node src/db/migrate.ts",
+    "seed": "node src/seed.ts",
+    "reset-admin": "node src/reset-admin.ts",
+    "worker": "node src/worker.ts",
+    "worker:once": "node src/worker.ts --once",
+    "start": "node src/server.ts",
+    "dev": "node --watch src/server.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "lint": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "check": "npm run lint && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^5.6.0"
+  }
+}
