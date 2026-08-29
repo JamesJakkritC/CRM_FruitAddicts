@@ -81,7 +81,7 @@ export function buildRouter() {
 }
 export async function bootstrap() {
     openDb();
-    const { applied } = runMigrations();
+    const { applied } = await runMigrations(); // <-- ต้องมี await
     if (applied.length)
         console.log(`Applied migrations: ${applied.join(', ')}`);
     ensureSettingsSeeded();
