@@ -6,22 +6,70 @@ import { config } from '../config.js';
 
 let handle = null;
 
+// Wrapper สร้าง compatibility layer ให้ Turso รองรับ .prepare() แบบ async/sync safe
+function createTursoAdapter(client) {
+    return {
+        // ให้ส่งคืน client ดั้งเดิมสำหรับฟังก์ชันที่เช็คประเภท
+        _client: client,
+        
+        // จำลองเมธอด prepare ให้รองรับ .get(), .all(), .run()
+        prepare(sql) {
+            return {
+                async get(...args) {
+                    const flatArgs = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+                    const res = await client.execute({ sql, args: flatArgs });
+                    return res.rows[0] || undefined;
+                },
+                async all(...args) {
+                    const flatArgs = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+                    const res = await client.execute({ sql, args: flatArgs });
+                    return res.rows;
+                },
+                async run(...args) {
+                    const flatArgs = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+                    const res = await client.execute({ sql, args: flatArgs });
+                    return {
+                        changes: Number(res.rowsAffected || 0),
+                        lastInsertRowid: res.lastInsertRowid ? Number(res.lastInsertRowid) : 0
+                    };
+                }
+            };
+        },
+
+        // Direct Execution Fallbacks
+        async execute(stmt) {
+            return await client.execute(stmt);
+        },
+        async executeMultiple(sql) {
+            return await client.executeMultiple(sql);
+        },
+        async exec(sql) {
+            return await client.executeMultiple(sql);
+        },
+        async transaction(mode) {
+            return await client.transaction(mode);
+        },
+        close() {
+            client.close();
+        }
+    };
+}
+
 export function openDb(file = config.db.file) {
     if (handle) return handle;
 
     const tursoUrl = process.env.TURSO_DATABASE_URL;
     const tursoToken = process.env.TURSO_AUTH_TOKEN;
 
-    // หากมีการตั้งค่า Turso ให้เชื่อมต่อผ่าน Turso Cloud
     if (tursoUrl && tursoToken) {
-        handle = createClient({
+        const rawClient = createClient({
             url: tursoUrl,
             authToken: tursoToken
         });
+        handle = createTursoAdapter(rawClient);
         return handle;
     }
 
-    // Fallback กรณีรันใน Local
     let targetFile = file;
     if (process.env.VERCEL === '1' && file !== ':memory:') {
         targetFile = '/tmp/data/sqlite.db';
@@ -48,58 +96,31 @@ export function closeDb() {
     }
 }
 
-// เพิ่มฟังก์ชัน tx (Transaction Helper)
-let savepointDepth = 0;
-
-export function tx(fn) {
+export async function tx(fn) {
     const db = getDb();
 
-    // กรณีเป็น Turso Client (Async transaction)
-    if (db && typeof db.transaction === 'function') {
-        return db.transaction('write').then(async (transaction) => {
-            try {
-                const result = await fn(transaction);
-                await transaction.commit();
-                return result;
-            } catch (err) {
-                await transaction.rollback();
-                throw err;
-            }
-        });
+    if (db && db._client && typeof db._client.transaction === 'function') {
+        const transaction = await db._client.transaction('write');
+        const txAdapter = createTursoAdapter(transaction);
+        try {
+            const result = await fn(txAdapter);
+            await transaction.commit();
+            return result;
+        } catch (err) {
+            await transaction.rollback();
+            throw err;
+        }
     }
 
-    // กรณีเป็น Synchronous node:sqlite
-    if (savepointDepth === 0) {
-        db.exec('BEGIN IMMEDIATE;');
-        savepointDepth = 1;
-        try {
-            const result = fn(db);
-            db.exec('COMMIT;');
-            savepointDepth = 0;
-            return result;
-        } catch (err) {
-            try {
-                db.exec('ROLLBACK;');
-            } finally {
-                savepointDepth = 0;
-            }
-            throw err;
-        }
-    } else {
-        const name = `sp_${savepointDepth}`;
-        db.exec(`SAVEPOINT ${name};`);
-        savepointDepth += 1;
-        try {
-            const result = fn(db);
-            db.exec(`RELEASE ${name};`);
-            savepointDepth -= 1;
-            return result;
-        } catch (err) {
-            db.exec(`ROLLBACK TO ${name};`);
-            db.exec(`RELEASE ${name};`);
-            savepointDepth -= 1;
-            throw err;
-        }
+    // Fallback สำหรับ node:sqlite
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+        const result = await fn(db);
+        db.exec('COMMIT;');
+        return result;
+    } catch (err) {
+        db.exec('ROLLBACK;');
+        throw err;
     }
 }
 
