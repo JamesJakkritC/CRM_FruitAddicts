@@ -36,19 +36,26 @@ export function registerAuthRoutes(router) {
 
     router.get('/api/auth/me', async (ctx) => {
         const p = await getPrincipal(ctx);
-        if (!p || !Array.isArray(p.roles)) {
-            throw new AppError(401, 'unauthorized', 'invalid principal or session expired');
+        if (!p) {
+            throw new AppError(401, 'unauthorized', 'Session expired');
         }
 
+        const roles = Array.isArray(p.roles) ? p.roles : [];
         const perms = new Set();
-        for (const r of p.roles) {
-            if (ROLE_GRANTS[r] && Array.isArray(ROLE_GRANTS[r].perms)) {
-                for (const perm of ROLE_GRANTS[r].perms) {
+
+        for (const r of roles) {
+            const grants = ROLE_GRANTS[r];
+            if (grants && Array.isArray(grants.perms)) {
+                for (const perm of grants.perms) {
                     perms.add(perm);
                 }
             }
         }
-        return { principal: p, permissions: [...perms] };
+
+        return { 
+            principal: p, 
+            permissions: Array.from(perms) 
+        };
     }, [requireAuth]);
 
     // Role matrix (for UI + docs)
