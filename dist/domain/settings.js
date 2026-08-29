@@ -10,9 +10,10 @@ export const LOYALTY_KEYS = {
     // never silently treat a guessed ratio as approved. See ASSUMPTIONS.md.
     rulesApproved: 'loyalty.rules_approved',
 };
-export function getSetting(key, db = getDb()) {
-    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
-    return row?.value;
+export async function getSetting(key) {
+    const db = getDb();
+    const row = await db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+    return row ? row.value : undefined;
 }
 export function setSetting(key, value, db = getDb()) {
     db.prepare(`INSERT INTO settings(key, value, updated_at) VALUES(?,?,?)
@@ -42,20 +43,11 @@ export function getLoyaltyConfig(db = getDb()) {
     }
     return cfg;
 }
-/** Seed loyalty settings from env defaults if (and only if) they are absent. */
-export function ensureSettingsSeeded(db = getDb()) {
-    if (getSetting(LOYALTY_KEYS.earnBahtPerPoint, db) === undefined) {
-        setSetting(LOYALTY_KEYS.earnBahtPerPoint, String(loyaltyEnvDefaults.earnBahtPerPoint), db);
-    }
-    if (getSetting(LOYALTY_KEYS.redeemBahtPerPoint, db) === undefined) {
-        setSetting(LOYALTY_KEYS.redeemBahtPerPoint, String(loyaltyEnvDefaults.redeemBahtPerPoint), db);
-    }
-    if (getSetting(LOYALTY_KEYS.expiryDays, db) === undefined) {
-        setSetting(LOYALTY_KEYS.expiryDays, String(loyaltyEnvDefaults.expiryDays), db);
-    }
-    // Provisional until the owner confirms — never auto-approve.
-    if (getSetting(LOYALTY_KEYS.rulesApproved, db) === undefined) {
-        setSetting(LOYALTY_KEYS.rulesApproved, 'false', db);
+export async function ensureSettingsSeeded() {
+    const current = await getSetting('app_name');
+    if (!current) {
+        const db = getDb();
+        await db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('app_name', 'Fruit Addicts');
     }
 }
 /** Whether loyalty economics have been confirmed by the owner. */
