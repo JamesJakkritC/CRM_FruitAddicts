@@ -38,3 +38,19 @@ export function openDb(file = config.db.file) {
 export function getDb() {
     return handle ?? openDb();
 }
+
+export function closeDb() {
+    if (handle) {
+        if (typeof handle.close === 'function') {
+            handle.close();
+        }
+        handle = null;
+    }
+}
+
+export function now() {
+    return new Date().toISOString();
+}
+
+export const asRow = (v) => v;
+export const asRows = (v) => v;
