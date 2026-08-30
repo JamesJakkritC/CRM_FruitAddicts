@@ -74,7 +74,6 @@ export function customer360(memberId, db = getDb()) {
     };
 }
 export async function adminOverview(db = getDb()) {
-    // ใส่ await หน้า db.prepare(...).get() หรือ .all() ทุกจุด
     const membersRes = await db.prepare('SELECT COUNT(*) AS c FROM members').get();
     const members = membersRes?.c ?? 0;
 
@@ -99,18 +98,14 @@ export async function adminOverview(db = getDb()) {
     const couponsRes = await db.prepare('SELECT COUNT(*) AS c FROM coupon_redemptions').get();
     const coupons = couponsRes?.c ?? 0;
 
-    // Fetch members แบบ async
     const rawMembers = await db.prepare('SELECT * FROM members').all();
-    const allMembers = asRows(rawMembers);
-    
+    const allMembers = asRows(rawMembers || []);
     const segments = {};
     for (const m of allMembers) {
-        // หาก memberStats มีการ Query ต้องเปลี่ยนเป็น await เช่นกัน
         const stats = await memberStats(m.id, db);
         const seg = classifySegment(m, stats);
         segments[seg] = (segments[seg] ?? 0) + 1;
     }
-
     return {
         members,
         activeMembers90d: active,
