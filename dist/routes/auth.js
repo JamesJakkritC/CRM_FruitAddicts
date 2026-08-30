@@ -43,6 +43,7 @@ export function registerAuthRoutes(router) {
         const roles = Array.isArray(p.roles) ? p.roles : [];
         const perms = new Set();
 
+        // รวบรวม permissions จาก ROLE_GRANTS
         for (const r of roles) {
             const grants = ROLE_GRANTS[r];
             if (grants && Array.isArray(grants.perms)) {
@@ -50,6 +51,15 @@ export function registerAuthRoutes(router) {
                     perms.add(perm);
                 }
             }
+        }
+
+        // กรณีเป็น super_admin ดึงสิทธิ์ทั้งหมดที่มีใน ROLE_GRANTS ใส่เพิ่มลงไป
+        if (roles.includes('super_admin')) {
+            Object.values(ROLE_GRANTS).forEach(g => {
+                if (Array.isArray(g?.perms)) {
+                    g.perms.forEach(p => perms.add(p));
+                }
+            });
         }
 
         return { 
