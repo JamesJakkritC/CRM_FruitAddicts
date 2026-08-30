@@ -7,14 +7,74 @@ import { ROLE_GRANTS, ROLE_DESCRIPTIONS, ROLES } from "../domain/rbac.js";
 import { body, requireString, optionalString } from "./helpers.js";
 import { AppError } from "../lib/errors.js";
 
+// Helper ฟังก์ชันสำหรับดึงรายการ permissions ให้ครอบคลุมทุกกรณี
+function computePermissions(rolesInput) {
+    let roles = [];
+    if (Array.isArray(rolesInput)) {
+        roles = rolesInput;
+    } else if (typeof rolesInput === 'string') {
+        try {
+            roles = JSON.parse(rolesInput);
+        } catch (e) {
+            roles = [rolesInput];
+        }
+    } else if (rolesInput) {
+        roles = [rolesInput];
+    }
+
+    const perms = new Set();
+
+    // 1. ดึง permissions ตามบทบาทที่มีใน ROLE_GRANTS
+    for (const r of roles) {
+        const grants = ROLE_GRANTS[r];
+        if (grants && Array.isArray(grants.perms)) {
+            for (const perm of grants.perms) {
+                perms.add(perm);
+            }
+        }
+    }
+
+    // 2. ถ้าเป็น super_admin หรือ admin ให้สิทธิ์ทั้งหมดทันที
+    const isAdmin = roles.some(r => 
+        String(r).toLowerCase().includes('admin') || 
+        String(r).toLowerCase().includes('super_admin')
+    );
+
+    if (isAdmin) {
+        const allKnownPerms = [
+            'users.manage', 'audit.read', 'branches.read', 'branches.manage',
+            'orders.read', 'orders.manage', 'inventory.read', 'inventory.manage',
+            'reports.read', 'customers.read', 'customers.manage', 'settings.manage',
+            'dashboard.read', 'products.read', 'products.manage'
+        ];
+        allKnownPerms.forEach(p => perms.add(p));
+
+        Object.values(ROLE_GRANTS).forEach(g => {
+            if (Array.isArray(g?.perms)) {
+                g.perms.forEach(p => perms.add(p));
+            }
+        });
+    }
+
+    return { roles, permissions: Array.from(perms) };
+}
+
 export function registerAuthRoutes(router) {
     router.post('/api/auth/login', async (ctx) => {
         const b = body(ctx);
         const username = requireString(b, 'username');
         try {
             const { token, principal } = await login(username, requireString(b, 'password'));
+            
+            // ประมวลผล roles และ permissions
+            const { roles, permissions } = computePermissions(principal.roles ?? principal.role);
+            principal.roles = roles;
+            principal.permissions = permissions;
+
             await audit({ actor: principal, action: 'login', outcome: 'success', ip: clientIp(ctx) });
-            return { token, principal };
+            
+            // คืนค่า permissions ออกไปพร้อมกับ token และ principal
+            return { token, principal, user: principal, permissions };
         }
         catch (err) {
             await audit({
@@ -40,61 +100,16 @@ export function registerAuthRoutes(router) {
             throw new AppError(401, 'unauthorized', 'Session expired');
         }
 
-        // แปลง roles ให้เป็น Array เสมอ ไม่ว่า DB หรือ Token จะเก็บมาแบบไหน (String / Array / Object)
-        let roles = [];
-        if (Array.isArray(p.roles)) {
-            roles = p.roles;
-        } else if (typeof p.roles === 'string') {
-            try {
-                roles = JSON.parse(p.roles);
-            } catch (e) {
-                roles = [p.roles];
-            }
-        } else if (p.role) {
-            roles = Array.isArray(p.role) ? p.role : [p.role];
-        }
-
-        // ปรับการเก็บ roles ให้กลับไปอยู่ใน principal เสมอเพื่อความสอดคล้อง
+        const { roles, permissions } = computePermissions(p.roles ?? p.role);
+        
+        // ผูกสิทธิ์กลับไปใน Object เพื่อให้รองรับรูปแบบ Frontend ทั้ง 2 แบบ
         p.roles = roles;
-
-        const perms = new Set();
-
-        // 1. ดึง permissions ตามบทบาทใน ROLE_GRANTS
-        for (const r of roles) {
-            const grants = ROLE_GRANTS[r];
-            if (grants && Array.isArray(grants.perms)) {
-                for (const perm of grants.perms) {
-                    perms.add(perm);
-                }
-            }
-        }
-
-        // 2. ถ้าเป็น super_admin หรือ admin ให้สิทธิ์ทั้งหมดในระบบทันที
-        const isSuperAdmin = roles.some(r => 
-            String(r).toLowerCase().includes('admin') || 
-            String(r).toLowerCase().includes('super_admin')
-        );
-
-        if (isSuperAdmin) {
-            // เพิ่มสิทธิ์พื้นฐานและสิทธิ์ดูแลระบบทั้งหมด
-            const allKnownPerms = [
-                'users.manage', 'audit.read', 'branches.read', 'branches.manage',
-                'orders.read', 'orders.manage', 'inventory.read', 'inventory.manage',
-                'reports.read', 'customers.read', 'customers.manage', 'settings.manage'
-            ];
-            allKnownPerms.forEach(perm => perms.add(perm));
-
-            // ดึงสิทธิ์ทั้งหมดที่มีใน ROLE_GRANTS
-            Object.values(ROLE_GRANTS).forEach(g => {
-                if (Array.isArray(g?.perms)) {
-                    g.perms.forEach(perm => perms.add(perm));
-                }
-            });
-        }
+        p.permissions = permissions;
 
         return { 
             principal: p, 
-            permissions: Array.from(perms) 
+            user: p, 
+            permissions: permissions 
         };
     }, [requireAuth]);
 
