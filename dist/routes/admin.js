@@ -33,9 +33,10 @@ function requireAllBranchReports(ctx) {
 export function registerAdminRoutes(router) {
     const auth = [requireAuth];
     // --- Reports (all-branch) ------------------------------------------------
-    router.get('/api/admin/overview', (ctx) => {
-    const allowedBranches = branchFilter(ctx, 'reports.read'); // null = ดูได้ทุกสาขา, Array = เฉพาะสาขาที่มีสิทธิ์
-    return adminOverview({ branchIds: allowedBranches ?? undefined });
+    router.get('/api/admin/overview', async (ctx) => { 
+        requireAllBranchReports(ctx); 
+        const overviewData = await adminOverview(); 
+        return overviewData; 
     }, [...auth, requirePerm('reports.read')]);
     router.get('/api/admin/top-customers', (ctx) => { requireAllBranchReports(ctx); return { customers: topCustomers(Number(ctx.query.get('limit') ?? 10)) }; }, [...auth, requirePerm('reports.read')]);
     router.get('/api/admin/sales-by-branch', (ctx) => { requireAllBranchReports(ctx); return { branches: salesByBranch() }; }, [...auth, requirePerm('reports.read')]);
