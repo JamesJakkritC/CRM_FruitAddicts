@@ -35,8 +35,7 @@ export function registerAdminRoutes(router) {
     // --- Reports (all-branch) ------------------------------------------------
     router.get('/api/admin/overview', async (ctx) => { 
         requireAllBranchReports(ctx); 
-        const overviewData = await adminOverview(); 
-        return overviewData; 
+        return await adminOverview(); 
     }, [...auth, requirePerm('reports.read')]);
     router.get('/api/admin/top-customers', (ctx) => { requireAllBranchReports(ctx); return { customers: topCustomers(Number(ctx.query.get('limit') ?? 10)) }; }, [...auth, requirePerm('reports.read')]);
     router.get('/api/admin/sales-by-branch', (ctx) => { requireAllBranchReports(ctx); return { branches: salesByBranch() }; }, [...auth, requirePerm('reports.read')]);
