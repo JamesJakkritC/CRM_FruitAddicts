@@ -40,10 +40,26 @@ export function registerAuthRoutes(router) {
             throw new AppError(401, 'unauthorized', 'Session expired');
         }
 
-        const roles = Array.isArray(p.roles) ? p.roles : [];
+        // แปลง roles ให้เป็น Array เสมอ ไม่ว่า DB หรือ Token จะเก็บมาแบบไหน (String / Array / Object)
+        let roles = [];
+        if (Array.isArray(p.roles)) {
+            roles = p.roles;
+        } else if (typeof p.roles === 'string') {
+            try {
+                roles = JSON.parse(p.roles);
+            } catch (e) {
+                roles = [p.roles];
+            }
+        } else if (p.role) {
+            roles = Array.isArray(p.role) ? p.role : [p.role];
+        }
+
+        // ปรับการเก็บ roles ให้กลับไปอยู่ใน principal เสมอเพื่อความสอดคล้อง
+        p.roles = roles;
+
         const perms = new Set();
 
-        // รวบรวม permissions จาก ROLE_GRANTS
+        // 1. ดึง permissions ตามบทบาทใน ROLE_GRANTS
         for (const r of roles) {
             const grants = ROLE_GRANTS[r];
             if (grants && Array.isArray(grants.perms)) {
@@ -53,11 +69,25 @@ export function registerAuthRoutes(router) {
             }
         }
 
-        // กรณีเป็น super_admin ดึงสิทธิ์ทั้งหมดที่มีใน ROLE_GRANTS ใส่เพิ่มลงไป
-        if (roles.includes('super_admin')) {
+        // 2. ถ้าเป็น super_admin หรือ admin ให้สิทธิ์ทั้งหมดในระบบทันที
+        const isSuperAdmin = roles.some(r => 
+            String(r).toLowerCase().includes('admin') || 
+            String(r).toLowerCase().includes('super_admin')
+        );
+
+        if (isSuperAdmin) {
+            // เพิ่มสิทธิ์พื้นฐานและสิทธิ์ดูแลระบบทั้งหมด
+            const allKnownPerms = [
+                'users.manage', 'audit.read', 'branches.read', 'branches.manage',
+                'orders.read', 'orders.manage', 'inventory.read', 'inventory.manage',
+                'reports.read', 'customers.read', 'customers.manage', 'settings.manage'
+            ];
+            allKnownPerms.forEach(perm => perms.add(perm));
+
+            // ดึงสิทธิ์ทั้งหมดที่มีใน ROLE_GRANTS
             Object.values(ROLE_GRANTS).forEach(g => {
                 if (Array.isArray(g?.perms)) {
-                    g.perms.forEach(p => perms.add(p));
+                    g.perms.forEach(perm => perms.add(perm));
                 }
             });
         }
