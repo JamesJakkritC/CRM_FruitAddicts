@@ -17,24 +17,24 @@ export const RFM = {
 function daysBetween(fromIso, toIso) {
     return Math.floor((new Date(toIso).getTime() - new Date(fromIso).getTime()) / 86_400_000);
 }
-export function memberStats(memberId, db = getDb()) {
-    const agg = db
+export async function memberStats(memberId, db = getDb()) {
+    const agg = await db
         .prepare(`SELECT COUNT(*) AS visits,
               COALESCE(SUM(net_amount),0) AS spend,
               COALESCE(SUM(discount_amount),0) AS discount,
               MIN(created_at) AS first_at,
               MAX(created_at) AS last_at
-         FROM transactions WHERE member_id = ?`)
+           FROM transactions WHERE member_id = ?`)
         .get(memberId);
-    const recencyDays = agg.last_at ? daysBetween(agg.last_at, now()) : null;
+    const recencyDays = agg?.last_at ? daysBetween(agg.last_at, now()) : null;
     return {
-        visits: agg.visits,
-        totalSpendSatang: agg.spend,
-        totalDiscountSatang: agg.discount,
-        firstPurchaseAt: agg.first_at,
-        lastPurchaseAt: agg.last_at,
+        visits: agg?.visits ?? 0,
+        totalSpendSatang: agg?.spend ?? 0,
+        totalDiscountSatang: agg?.discount ?? 0,
+        firstPurchaseAt: agg?.first_at ?? null,
+        lastPurchaseAt: agg?.last_at ?? null,
         recencyDays,
-        pointBalance: getBalance(memberId, db),
+        pointBalance: await getBalance(memberId, db),
     };
 }
 export function classifySegment(member, s) {
