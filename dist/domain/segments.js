@@ -73,26 +73,44 @@ export function customer360(memberId, db = getDb()) {
         couponsUsed,
     };
 }
-export function adminOverview(db = getDb()) {
-    const members = db.prepare('SELECT COUNT(*) AS c FROM members').get().c;
+export async function adminOverview(db = getDb()) {
+    // ใส่ await หน้า db.prepare(...).get() หรือ .all() ทุกจุด
+    const membersRes = await db.prepare('SELECT COUNT(*) AS c FROM members').get();
+    const members = membersRes?.c ?? 0;
+
     const cutoff = new Date(Date.now() - 90 * 86_400_000).toISOString();
-    const active = db
+    const activeRes = await db
         .prepare('SELECT COUNT(DISTINCT member_id) AS c FROM transactions WHERE created_at >= ?')
-        .get(cutoff).c;
-    const liability = db
+        .get(cutoff);
+    const active = activeRes?.c ?? 0;
+
+    const liabilityRes = await db
         .prepare(`SELECT COALESCE(SUM(remaining),0) AS c FROM point_lots
            WHERE status = 'active' AND remaining > 0 AND (expires_at IS NULL OR expires_at > ?)`)
-        .get(now()).c;
-    const sales = db.prepare('SELECT COALESCE(SUM(net_amount),0) AS c FROM transactions').get().c;
-    const txns = db.prepare('SELECT COUNT(*) AS c FROM transactions').get().c;
-    const coupons = db.prepare('SELECT COUNT(*) AS c FROM coupon_redemptions').get().c;
-    // Segment distribution (computed per member; fine at a few-thousand scale).
-    const allMembers = asRows(db.prepare('SELECT * FROM members').all());
+        .get(now());
+    const liability = liabilityRes?.c ?? 0;
+
+    const salesRes = await db.prepare('SELECT COALESCE(SUM(net_amount),0) AS c FROM transactions').get();
+    const sales = salesRes?.c ?? 0;
+
+    const txnsRes = await db.prepare('SELECT COUNT(*) AS c FROM transactions').get();
+    const txns = txnsRes?.c ?? 0;
+
+    const couponsRes = await db.prepare('SELECT COUNT(*) AS c FROM coupon_redemptions').get();
+    const coupons = couponsRes?.c ?? 0;
+
+    // Fetch members แบบ async
+    const rawMembers = await db.prepare('SELECT * FROM members').all();
+    const allMembers = asRows(rawMembers);
+    
     const segments = {};
     for (const m of allMembers) {
-        const seg = classifySegment(m, memberStats(m.id, db));
+        // หาก memberStats มีการ Query ต้องเปลี่ยนเป็น await เช่นกัน
+        const stats = await memberStats(m.id, db);
+        const seg = classifySegment(m, stats);
         segments[seg] = (segments[seg] ?? 0) + 1;
     }
+
     return {
         members,
         activeMembers90d: active,
