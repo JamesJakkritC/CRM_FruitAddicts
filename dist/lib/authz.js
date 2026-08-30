@@ -6,7 +6,7 @@ export async function getPrincipal(ctx) {
     if (ctx.state?.principal) {
         return ctx.state.principal;
     }
-    const auth = String(ctx.headers['authorization'] ?? '');
+    const auth = String(ctx.headers['authorization'] ?? ctx.headers['Authorization'] ?? '');
     if (!auth.startsWith('Bearer ')) {
         return null;
     }
@@ -14,12 +14,16 @@ export async function getPrincipal(ctx) {
     if (!token) {
         return null;
     }
-    const principal = await principalFromToken(token);
-    if (principal) {
-        ctx.state = ctx.state || {};
-        ctx.state.principal = principal;
+    try {
+        const principal = await principalFromToken(token);
+        if (principal) {
+            ctx.state = ctx.state || {};
+            ctx.state.principal = principal;
+        }
+        return principal;
+    } catch (e) {
+        return null;
     }
-    return principal;
 }
 
 export async function requireAuth(ctx) {
@@ -35,10 +39,21 @@ export function requirePerm(perm) {
         if (!p) {
             throw unauthorized('Authentication required');
         }
+        
         const roles = Array.isArray(p.roles) ? p.roles : [];
+        
+        // ถ้าเป็น super_admin ให้ผ่านเสมอ
+        if (roles.includes('super_admin')) {
+            return;
+        }
+
         const hasPermission = roles.some((r) => {
             const grants = ROLE_GRANTS[r];
-            return grants && Array.isArray(grants.perms) && grants.perms.includes(perm);
+            if (!grants) return false;
+            if (grants.perms && Array.isArray(grants.perms)) {
+                return grants.perms.includes(perm) || grants.perms.includes('*');
+            }
+            return false;
         });
 
         if (!hasPermission) {
@@ -47,25 +62,26 @@ export function requirePerm(perm) {
     };
 }
 
-/** ตรวจสอบว่า Principal มีสิทธิ์เข้าถึงสาขาที่ระบุหรือไม่ */
 export function authorizeBranch(principal, branchId) {
     if (!principal) return false;
     const roles = Array.isArray(principal.roles) ? principal.roles : [];
-    
-    // หากมีบทบาทที่มีสิทธิ์เข้าถึงทุกสาขา (allBranches = true)
+    if (roles.includes('super_admin')) return true;
+
     const hasAllBranches = roles.some((r) => ROLE_GRANTS[r]?.allBranches);
     if (hasAllBranches) return true;
 
-    // ตรวจสอบจากรายชื่อ branchIds ที่ได้รับสิทธิ์เฉพาะ
     const branchIds = Array.isArray(principal.branchIds) ? principal.branchIds : [];
     return branchIds.includes(branchId);
 }
 
-/** คืนค่าเงื่อนไขการกรองสาขา (Branch Filter Query) สำหรับ SQL */
 export function branchFilter(principal, column = 'branch_id') {
     if (!principal) return { sql: '1=0', args: [] };
     const roles = Array.isArray(principal.roles) ? principal.roles : [];
     
+    if (roles.includes('super_admin')) {
+        return { sql: '1=1', args: [] };
+    }
+
     const hasAllBranches = roles.some((r) => ROLE_GRANTS[r]?.allBranches);
     if (hasAllBranches) {
         return { sql: '1=1', args: [] };
